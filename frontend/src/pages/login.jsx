@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { login, register } from '../services/authService';
 
 // --- SVG Icon for Back Button ---
 const BackArrowIcon = () => (
@@ -66,14 +67,129 @@ const RoleSelectionScreen = ({ onSelectRole }) => {
 // --- 3. Login Screen (UPDATED) ---
 // This component now manages "Login" vs "Sign Up" state
 const LoginScreen = ({ role, onBack}) => {
+  const navigate = useNavigate();
   // 'login' or 'signup'
   const location = useLocation();
   const initialMode = location.state?.mode || "login"
   const [authMode, setAuthMode] = useState(initialMode);
   const isLoginMode = authMode === 'login';
 
+  // Form state
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    department: '',
+    phone: '',
+    rollNumber: '',
+  });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
   const activeTabClasses = "bg-sky-500 text-white";
   const inactiveTabClasses = "text-slate-300 hover:bg-slate-700 hover:bg-opacity-50";
+
+  // Handle input changes
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    setError(''); // Clear error on input
+  };
+
+  // Map role to backend format
+  const getRoleKey = (roleDisplay) => {
+    const roleMap = {
+      'Student': 'student',
+      'HOD': 'hod',
+      'Placement Officer': 'tpo'
+    };
+    return roleMap[roleDisplay] || 'student';
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    try {
+      if (isLoginMode) {
+        // Login
+        const response = await login(formData.email, formData.password, getRoleKey(role));
+        
+        setSuccess('Login successful! Redirecting...');
+        
+        // Redirect based on role
+        setTimeout(() => {
+          const userRole = response.user.role.toLowerCase();
+          if (userRole === 'student') {
+            navigate('/student/dashboard');
+          } else if (userRole === 'hod') {
+            navigate('/hod/dashboard');
+          } else if (userRole === 'tpo') {
+            navigate('/tpo/dashboard');
+          } else {
+            navigate('/');
+          }
+        }, 1500);
+
+      } else {
+        // Sign Up
+        if (formData.password !== formData.confirmPassword) {
+          setError('Passwords do not match');
+          setLoading(false);
+          return;
+        }
+
+        if (formData.password.length < 6) {
+          setError('Password must be at least 6 characters');
+          setLoading(false);
+          return;
+        }
+
+        const userData = {
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          role: getRoleKey(role),
+          department: formData.department || undefined,
+          phone: formData.phone || undefined,
+          rollNumber: formData.rollNumber || undefined,
+        };
+
+        const response = await register(userData);
+        
+        setSuccess(response.message || 'Registration successful!');
+        
+        // Redirect or switch to login
+        setTimeout(() => {
+          if (response.user.isApproved) {
+            const userRole = response.user.role.toLowerCase();
+            if (userRole === 'student') {
+              navigate('/student/dashboard');
+            } else if (userRole === 'hod') {
+              navigate('/hod/dashboard');
+            } else if (userRole === 'tpo') {
+              navigate('/tpo/dashboard');
+            }
+          } else {
+            setAuthMode('login');
+            setFormData({ name: '', email: '', password: '', confirmPassword: '', department: '', phone: '', rollNumber: '' });
+          }
+        }, 2000);
+      }
+    } catch (err) {
+      setError(err || 'An error occurred. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="w-full max-w-md relative">
@@ -125,22 +241,90 @@ const LoginScreen = ({ role, onBack}) => {
           </button>
         </div>
 
+        {/* Error/Success Messages */}
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-red-500 bg-opacity-20 border border-red-500 text-red-300 text-sm">
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="mb-4 p-3 rounded-lg bg-green-500 bg-opacity-20 border border-green-500 text-green-300 text-sm">
+            {success}
+          </div>
+        )}
+
         {/* Form fields are now conditional */}
-        <form>
+        <form onSubmit={handleSubmit}>
           {/* --- SIGN UP ONLY FIELDS --- */}
           {!isLoginMode && (
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" htmlFor="name">Full Name</label>
-              <input
-                type="text"
-                id="name"
-                placeholder="John Doe"
-                className="w-full p-3 rounded-lg border border-slate-500 border-opacity-50
-                           bg-slate-800 bg-opacity-30 placeholder-slate-400
-                           focus:outline-none focus:ring-2 focus:ring-sky-400 
-                           transition duration-300 text-slate-100"
-              />
-            </div>
+            <>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2" htmlFor="name">Full Name</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="John Doe"
+                  required
+                  className="w-full p-3 rounded-lg border border-slate-500 border-opacity-50
+                             bg-slate-800 bg-opacity-30 placeholder-slate-400
+                             focus:outline-none focus:ring-2 focus:ring-sky-400 
+                             transition duration-300 text-slate-100"
+                />
+              </div>
+
+              {role === 'Student' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-2" htmlFor="rollNumber">Roll Number</label>
+                  <input
+                    type="text"
+                    id="rollNumber"
+                    name="rollNumber"
+                    value={formData.rollNumber}
+                    onChange={handleChange}
+                    placeholder="CS2021001"
+                    className="w-full p-3 rounded-lg border border-slate-500 border-opacity-50
+                               bg-slate-800 bg-opacity-30 placeholder-slate-400
+                               focus:outline-none focus:ring-2 focus:ring-sky-400 
+                               transition duration-300 text-slate-100"
+                  />
+                </div>
+              )}
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2" htmlFor="department">Department</label>
+                <input
+                  type="text"
+                  id="department"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleChange}
+                  placeholder="Computer Science"
+                  className="w-full p-3 rounded-lg border border-slate-500 border-opacity-50
+                             bg-slate-800 bg-opacity-30 placeholder-slate-400
+                             focus:outline-none focus:ring-2 focus:ring-sky-400 
+                             transition duration-300 text-slate-100"
+                />
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2" htmlFor="phone">Phone Number</label>
+                <input
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="1234567890"
+                  className="w-full p-3 rounded-lg border border-slate-500 border-opacity-50
+                             bg-slate-800 bg-opacity-30 placeholder-slate-400
+                             focus:outline-none focus:ring-2 focus:ring-sky-400 
+                             transition duration-300 text-slate-100"
+                />
+              </div>
+            </>
           )}
 
           {/* --- COMMON FIELDS --- */}
@@ -149,7 +333,11 @@ const LoginScreen = ({ role, onBack}) => {
             <input
               type="email"
               id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
               placeholder="user@example.com"
+              required
               className="w-full p-3 rounded-lg border border-slate-500 border-opacity-50
                          bg-slate-800 bg-opacity-30 placeholder-slate-400
                          focus:outline-none focus:ring-2 focus:ring-sky-400 
@@ -162,7 +350,11 @@ const LoginScreen = ({ role, onBack}) => {
             <input
               type="password"
               id="password"
+              name="password"
+              value={formData.password}
+              onChange={handleChange}
               placeholder="••••••••"
+              required
               className="w-full p-3 rounded-lg border border-slate-500 border-opacity-50
                          bg-slate-800 bg-opacity-30 placeholder-slate-400
                          focus:outline-none focus:ring-2 focus:ring-sky-400 
@@ -177,7 +369,11 @@ const LoginScreen = ({ role, onBack}) => {
               <input
                 type="password"
                 id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
                 placeholder="••••••••"
+                required
                 className="w-full p-3 rounded-lg border border-slate-500 border-opacity-50
                            bg-slate-800 bg-opacity-30 placeholder-slate-400
                            focus:outline-none focus:ring-2 focus:ring-sky-400 
@@ -189,12 +385,14 @@ const LoginScreen = ({ role, onBack}) => {
           {/* UPDATED: Button text changes based on mode */}
           <button
             type="submit"
+            disabled={loading}
             className="w-full py-3 rounded-lg text-lg font-semibold
                        bg-emerald-500 text-slate-900
                        hover:bg-emerald-400 transition duration-300
-                       focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-900"
+                       focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-900
+                       disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoginMode ? 'Sign In' : 'Create Account'}
+            {loading ? 'Please wait...' : (isLoginMode ? 'Sign In' : 'Create Account')}
           </button>
         </form>
         
