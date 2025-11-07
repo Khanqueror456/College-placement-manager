@@ -2,6 +2,7 @@ import config from '../config/config.js';
 import { asyncHandler } from '../middlewares/errorHandler.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { logInfo, logActivity } from '../middlewares/logger.js';
+import { sendStudentApprovalEmail, sendStudentRejectionEmail } from '../lib/emailService.js';
 
 /**
  * HOD (Head of Department) Controller
@@ -80,18 +81,32 @@ export const approveStudent = asyncHandler(async (req, res, next) => {
   // student.approvedAt = new Date();
   // await student.save();
 
-  // TODO: Send approval email to student
-  // await sendEmail({
-  //   email: student.email,
-  //   subject: 'Account Approved',
-  //   message: 'Your account has been approved by HOD. You can now login and access the portal.'
-  // });
+  // Mock student data for email (replace with actual database query)
+  const student = {
+    id: studentId,
+    name: 'Student Name', // TODO: Get from database
+    email: 'student@example.com', // TODO: Get from database
+    department: hodDepartment,
+    rollNumber: 'CS2024001' // TODO: Get from database
+  };
+
+  // Send approval email to student
+  try {
+    await sendStudentApprovalEmail(student, {
+      name: req.user.name,
+      email: req.user.email
+    });
+    logInfo('Approval email sent successfully', { studentId, studentEmail: student.email });
+  } catch (error) {
+    logInfo('Failed to send approval email', { studentId, error: error.message });
+    // Don't fail the approval process if email fails
+  }
 
   logActivity('STUDENT_APPROVED', req.user.id, { studentId, department: hodDepartment });
 
   res.status(200).json({
     success: true,
-    message: 'Student approved successfully',
+    message: 'Student approved successfully and notification email sent',
     student: {
       id: studentId,
       isApproved: true,
@@ -128,18 +143,32 @@ export const rejectStudent = asyncHandler(async (req, res, next) => {
   // OR
   // await User.findByIdAndDelete(studentId);
 
-  // TODO: Send rejection email
-  // await sendEmail({
-  //   email: student.email,
-  //   subject: 'Account Registration Rejected',
-  //   message: `Your registration has been rejected. Reason: ${reason}`
-  // });
+  // Mock student data for email (replace with actual database query)
+  const student = {
+    id: studentId,
+    name: 'Student Name', // TODO: Get from database
+    email: 'student@example.com', // TODO: Get from database
+    department: hodDepartment,
+    rollNumber: 'CS2024002' // TODO: Get from database
+  };
+
+  // Send rejection email to student
+  try {
+    await sendStudentRejectionEmail(student, {
+      name: req.user.name,
+      email: req.user.email
+    }, reason || 'No reason provided');
+    logInfo('Rejection email sent successfully', { studentId, studentEmail: student.email });
+  } catch (error) {
+    logInfo('Failed to send rejection email', { studentId, error: error.message });
+    // Don't fail the rejection process if email fails
+  }
 
   logActivity('STUDENT_REJECTED', req.user.id, { studentId, reason });
 
   res.status(200).json({
     success: true,
-    message: 'Student registration rejected'
+    message: 'Student registration rejected and notification email sent'
   });
 });
 
