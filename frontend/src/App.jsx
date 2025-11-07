@@ -1,10 +1,14 @@
 import './App.css'
 import Login from './pages/login';
-import StudentProfile from './pages/student_profile';
+import StudentProfileOld from './pages/student_profile';
+import StudentProfile from './pages/StudentProfile';
+import StudentDashboard from './pages/StudentDashboard';
+import ViewDrives from './pages/ViewDrives';
+import MyApplications from './pages/MyApplications';
 import EditStudentProfile from './pages/EditStudentProfile';
 import StudentDrives from './pages/StudentDrives';
 import StudentDriveStatus from './pages/StudentDriveStatus';
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/homepage';
 import AboutPage from './pages/About';
 import ContactPage from './components/Contact';
@@ -13,12 +17,15 @@ import HodDashboard from './pages/hod_dashboard';
 import HodStatistics from './components/hod_stats';
 import HodPlacementReport from "./components/hod_reports"
 import StudentOverview from "./components/student_dashboard"
+import TpoDashboard from './pages/tpo_dashboard';
 import ApiTest from './pages/ApiTest';
+import ProtectedRoute from './components/ProtectedRoute';
+import { AuthProvider } from './context/AuthContext';
 
 function App() {
 
   return (
-    <>
+    <AuthProvider>
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPage/>} />
@@ -26,23 +33,86 @@ function App() {
         <Route path="/login" element={<Login/>}/>
         <Route path="/api-test" element={<ApiTest/>}/>
         
-        {/* HOD Routes */}
-  
-        <Route path="/hod/dashboard" element={<HodDashboard/>}/>
-        <Route path="/hod/stats" element={<HodStatistics/>}/>
-        <Route path="/hod/report" element={<HodPlacementReport/>}/>
+        {/* TPO Protected Routes */}
+        <Route 
+          path="/tpo-dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['TPO']}>
+              <TpoDashboard/>
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* HOD Protected Routes */}
+        <Route 
+          path="/hod-dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['HOD']}>
+              <HodDashboard/>
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/hod-stats" 
+          element={
+            <ProtectedRoute allowedRoles={['HOD']}>
+              <HodStatistics/>
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/hod-report" 
+          element={
+            <ProtectedRoute allowedRoles={['HOD']}>
+              <HodPlacementReport/>
+            </ProtectedRoute>
+          }
+        />
 
-        {/* Student Routes */}
+        {/* Student Protected Routes - NEW INTEGRATED PAGES */}
+        <Route 
+          path="/student-dashboard" 
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT']}>
+              <StudentDashboard/>
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/student-profile" 
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT']}>
+              <StudentProfile/>
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/student-drives" 
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT']}>
+              <ViewDrives/>
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/student-applications" 
+          element={
+            <ProtectedRoute allowedRoles={['STUDENT']}>
+              <MyApplications/>
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Old Student Routes (keeping for backward compatibility) */}
         <Route path="/student/dashboard" element={<StudentOverview/>}/>
-        <Route path="/student/profile" element={<StudentProfile/>}/>
+        <Route path="/student/profile" element={<StudentProfileOld/>}/>
         <Route path="/student/drives" element={<StudentDrives/>}/>
         <Route path="/student/status" element={<StudentDriveStatus/>}/>
         
         {/* This is the "catch-all" route for 404s */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-        
-    </>
+    </AuthProvider>
   )
 }
 

@@ -5,61 +5,113 @@ import api from './api';
  * Handles all student-related API calls
  */
 
-// Get student profile
-export const getStudentProfile = async () => {
-  const response = await api.get('/student/profile');
-  return response.data;
-};
-
-// Update student profile
-export const updateStudentProfile = async (profileData) => {
-  const response = await api.put('/student/profile', profileData);
-  return response.data;
-};
-
-// Get student dashboard data
-export const getStudentDashboard = async () => {
-  const response = await api.get('/student/dashboard');
-  return response.data;
-};
-
-// Get available drives
-export const getAvailableDrives = async () => {
-  const response = await api.get('/student/drives');
-  return response.data;
-};
-
-// Register for a drive
-export const registerForDrive = async (driveId) => {
-  const response = await api.post(`/student/drives/${driveId}/register`);
-  return response.data;
-};
-
-// Get student's drive registrations
-export const getMyRegistrations = async () => {
-  const response = await api.get('/student/registrations');
-  return response.data;
-};
-
-// Upload resume
-export const uploadResume = async (file) => {
-  const formData = new FormData();
-  formData.append('resume', file);
+const studentService = {
+  // ========== Profile Management ==========
   
-  const response = await api.post('/upload/resume', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
-  return response.data;
+  /**
+   * Get student profile
+   */
+  getProfile: async () => {
+    const response = await api.get('/student/profile');
+    return response;
+  },
+
+  /**
+   * Update student profile
+   */
+  updateProfile: async (profileData) => {
+    const response = await api.put('/student/profile', profileData);
+    return response;
+  },
+
+  // ========== Resume Management ==========
+  
+  /**
+   * Upload resume
+   */
+  uploadResume: async (file) => {
+    const formData = new FormData();
+    formData.append('resume', file);
+    
+    const response = await api.post('/student/resume', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response;
+  },
+
+  /**
+   * Delete resume
+   */
+  deleteResume: async () => {
+    const response = await api.delete('/student/resume');
+    return response;
+  },
+
+  // ========== Placement Drives ==========
+  
+  /**
+   * Get all active placement drives
+   */
+  getActiveDrives: async () => {
+    const response = await api.get('/student/drives/active');
+    return response;
+  },
+
+  /**
+   * Apply to a placement drive
+   */
+  applyToDrive: async (driveId, coverLetter = '') => {
+    const response = await api.post(`/student/drives/${driveId}/apply`, {
+      coverLetter
+    });
+    return response;
+  },
+
+  // ========== Applications Management ==========
+  
+  /**
+   * Get all student applications
+   */
+  getMyApplications: async () => {
+    const response = await api.get('/student/applications');
+    return response;
+  },
+
+  /**
+   * Get detailed application status
+   */
+  getApplicationStatus: async (applicationId) => {
+    const response = await api.get(`/student/applications/${applicationId}/status`);
+    return response;
+  },
+
+  /**
+   * Withdraw application
+   */
+  withdrawApplication: async (applicationId) => {
+    const response = await api.delete(`/student/applications/${applicationId}`);
+    return response;
+  },
+
+  /**
+   * Download offer letter
+   */
+  downloadOfferLetter: async (applicationId) => {
+    const response = await api.get(`/student/applications/${applicationId}/offer-letter`);
+    return response;
+  },
+
+  // ========== Dashboard ==========
+  
+  /**
+   * Get student dashboard statistics
+   */
+  getDashboard: async () => {
+    const response = await api.get('/student/dashboard');
+    return response;
+  }
 };
 
-export default {
-  getStudentProfile,
-  updateStudentProfile,
-  getStudentDashboard,
-  getAvailableDrives,
-  registerForDrive,
-  getMyRegistrations,
-  uploadResume
-};
+export default studentService;
