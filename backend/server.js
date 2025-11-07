@@ -5,6 +5,7 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import config from './config/config.js';
+import { testConnection, syncDatabase } from './config/database.js';
 import { 
   errorHandler, 
   notFound, 
@@ -57,7 +58,8 @@ app.get('/health', (req, res) => {
     success: true,
     message: 'Server is running',
     timestamp: new Date().toISOString(),
-    environment: config.nodeEnv
+    environment: config.nodeEnv,
+    database: 'PostgreSQL'
   });
 });
 
@@ -67,6 +69,7 @@ app.get('/', (req, res) => {
     success: true,
     message: 'College Placement Management Portal API',
     version: '1.0.0',
+    database: 'PostgreSQL with Sequelize',
     endpoints: {
       health: '/health',
       api: '/api'
@@ -96,15 +99,45 @@ app.use(notFound);
 // Global Error Handler (must be last)
 app.use(errorHandler);
 
-// Start server
-const server = app.listen(port, () => {
-  logger.info(`Server listening at http://localhost:${port}`);
-  logger.info(`Environment: ${config.nodeEnv}`);
-  console.log(`✅ Server running on port ${port}`);
-  console.log(`🌍 Environment: ${config.nodeEnv}`);
-});
+// Initialize Database and Start Server
+const startServer = async () => {
+  try {
+    // Test database connection
+    logger.info('🔌 Connecting to PostgreSQL database...');
+    const isConnected = await testConnection();
+    
+    if (!isConnected) {
+      logger.error('❌ Failed to connect to database. Server not started.');
+      process.exit(1);
+    }
 
-// Handle unhandled promise rejections
-handleUnhandledRejection(server);
+    // Sync database models (only in development)
+    if (config.nodeEnv === 'development') {
+      logger.info('🔄 Syncing database models...');
+      await syncDatabase(false, false); // Set to true to force sync (WARNING: drops tables)
+    }
+
+    // Start server
+    const server = app.listen(port, () => {
+      logger.info(`✅ Server listening at http://localhost:${port}`);
+      logger.info(`🌍 Environment: ${config.nodeEnv}`);
+      logger.info(`🗄️  Database: PostgreSQL (Sequelize)`);
+      console.log(`\n✅ Server running on port ${port}`);
+      console.log(`🌍 Environment: ${config.nodeEnv}`);
+      console.log(`🗄️  Database: PostgreSQL\n`);
+    });
+
+    // Handle unhandled promise rejections
+    handleUnhandledRejection(server);
+
+  } catch (error) {
+    logger.error('❌ Failed to start server:', error);
+    console.error('❌ Server startup error:', error.message);
+    process.exit(1);
+  }
+};
+
+// Start the server
+startServer();
 
 export default app;
