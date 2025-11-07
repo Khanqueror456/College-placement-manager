@@ -1,0 +1,360 @@
+import jwt from 'jsonwebtoken';
+import bcryptjs from 'bcryptjs';
+import config from '../config/config.js';
+import { asyncHandler } from '../middlewares/errorHandler.js';
+import { AppError } from '../middlewares/errorHandler.js';
+import { logInfo, logError, logActivity } from '../middlewares/logger.js';
+
+/**
+ * Authentication Controller
+ * Handles user registration, login, and token management
+ */
+
+// @desc    Register new user
+// @route   POST /api/auth/register
+// @access  Public
+export const register = asyncHandler(async (req, res, next) => {
+  const { name, email, password, role, department, phone, rollNumber } = req.body;
+
+  // TODO: Check if user already exists in database
+  // const existingUser = await User.findOne({ email });
+  // if (existingUser) {
+  //   throw new AppError('User with this email already exists', 400);
+  // }
+
+  // Hash password
+  const salt = await bcryptjs.genSalt(10);
+  const hashedPassword = await bcryptjs.hash(password, salt);
+
+  // TODO: Create user in database
+  // const user = await User.create({
+  //   name,
+  //   email,
+  //   password: hashedPassword,
+  //   role: role || 'student',
+  //   department,
+  //   phone,
+  //   rollNumber,
+  //   isApproved: role === 'student' ? false : true,
+  //   isEmailVerified: false
+  // });
+
+  // Mock user for now (until database is connected)
+  const user = {
+    _id: `user_${Date.now()}`,
+    name,
+    email,
+    role: role || 'student',
+    department,
+    phone,
+    rollNumber,
+    isApproved: role === 'student' ? false : true,
+    isEmailVerified: false
+  };
+
+  // Generate JWT token
+  const token = jwt.sign(
+    { 
+      id: user._id, 
+      role: user.role,
+      email: user.email,
+      department: user.department
+    },
+    config.jwt.secret,
+    { expiresIn: config.jwt.expire }
+  );
+
+  // Log activity
+  logActivity('USER_REGISTERED', user._id, { email, role });
+
+  res.status(201).json({
+    success: true,
+    message: role === 'student' 
+      ? 'Registration successful! Your account is pending HOD approval.' 
+      : 'Registration successful!',
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+      isApproved: user.isApproved
+    }
+  });
+});
+
+// @desc    Login user
+// @route   POST /api/auth/login
+// @access  Public
+export const login = asyncHandler(async (req, res, next) => {
+  const { email, password } = req.body;
+
+  // TODO: Find user in database with password field
+  // const user = await User.findOne({ email }).select('+password');
+  // if (!user) {
+  //   throw new AppError('Invalid email or password', 401);
+  // }
+
+  // Mock user for testing (REMOVE when database is connected)
+  const user = {
+    _id: 'user_123',
+    name: 'Test User',
+    email: email,
+    password: await bcryptjs.hash('Password@123', 10), // Default test password
+    role: 'student',
+    department: 'Computer Science',
+    isApproved: true,
+    isEmailVerified: true
+  };
+
+  // Verify password
+  const isPasswordMatch = await bcryptjs.compare(password, user.password);
+  if (!isPasswordMatch) {
+    throw new AppError('Invalid email or password', 401);
+  }
+
+  // Check if student is approved by HOD
+  if (user.role === 'student' && !user.isApproved) {
+    throw new AppError('Your account is pending HOD approval', 403);
+  }
+
+  // Generate JWT token
+  const token = jwt.sign(
+    { 
+      id: user._id, 
+      role: user.role,
+      email: user.email,
+      department: user.department
+    },
+    config.jwt.secret,
+    { expiresIn: config.jwt.expire }
+  );
+
+  // Log activity
+  logActivity('USER_LOGIN', user._id, { email, role: user.role });
+
+  res.status(200).json({
+    success: true,
+    message: 'Login successful',
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+      isApproved: user.isApproved
+    }
+  });
+});
+
+// @desc    Get current logged in user
+// @route   GET /api/auth/me
+// @access  Private
+export const getMe = asyncHandler(async (req, res, next) => {
+  // User is available from auth middleware (req.user)
+  
+  // TODO: Fetch complete user details from database
+  // const user = await User.findById(req.user.id).select('-password');
+  // if (!user) {
+  //   throw new AppError('User not found', 404);
+  // }
+
+  // Mock user details
+  const user = {
+    id: req.user.id,
+    email: req.user.email,
+    role: req.user.role,
+    department: req.user.department,
+    name: 'Current User',
+    phone: '1234567890',
+    isApproved: true
+  };
+
+  res.status(200).json({
+    success: true,
+    user
+  });
+});
+
+// @desc    Logout user / Clear token
+// @route   POST /api/auth/logout
+// @access  Private
+export const logout = asyncHandler(async (req, res, next) => {
+  // If using cookies, clear the cookie
+  res.cookie('token', 'none', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true
+  });
+
+  // Log activity
+  logActivity('USER_LOGOUT', req.user.id, { email: req.user.email });
+
+  res.status(200).json({
+    success: true,
+    message: 'Logged out successfully'
+  });
+});
+
+// @desc    Change password
+// @route   PUT /api/auth/change-password
+// @access  Private
+export const changePassword = asyncHandler(async (req, res, next) => {
+  const { currentPassword, newPassword } = req.body;
+
+  if (!currentPassword || !newPassword) {
+    throw new AppError('Please provide current and new password', 400);
+  }
+
+  // TODO: Get user with password field
+  // const user = await User.findById(req.user.id).select('+password');
+  // if (!user) {
+  //   throw new AppError('User not found', 404);
+  // }
+
+  // TODO: Verify current password
+  // const isMatch = await bcryptjs.compare(currentPassword, user.password);
+  // if (!isMatch) {
+  //   throw new AppError('Current password is incorrect', 401);
+  // }
+
+  // TODO: Hash and update new password
+  // const salt = await bcryptjs.genSalt(10);
+  // user.password = await bcryptjs.hash(newPassword, salt);
+  // await user.save();
+
+  // Log activity
+  logActivity('PASSWORD_CHANGED', req.user.id, { email: req.user.email });
+
+  res.status(200).json({
+    success: true,
+    message: 'Password changed successfully'
+  });
+});
+
+// @desc    Forgot password - Send reset link
+// @route   POST /api/auth/forgot-password
+// @access  Public
+export const forgotPassword = asyncHandler(async (req, res, next) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new AppError('Please provide email address', 400);
+  }
+
+  // TODO: Find user by email
+  // const user = await User.findOne({ email });
+  // if (!user) {
+  //   throw new AppError('No user found with this email', 404);
+  // }
+
+  // TODO: Generate reset token
+  // const resetToken = crypto.randomBytes(32).toString('hex');
+  // const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
+
+  // TODO: Save token to user with expiry
+  // user.resetPasswordToken = hashedToken;
+  // user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
+  // await user.save();
+
+  // TODO: Send email with reset link
+  // const resetUrl = `${req.protocol}://${req.get('host')}/api/auth/reset-password/${resetToken}`;
+  // await sendEmail({
+  //   email: user.email,
+  //   subject: 'Password Reset Request',
+  //   message: `Click here to reset password: ${resetUrl}`
+  // });
+
+  logInfo('Password reset requested', { email });
+
+  res.status(200).json({
+    success: true,
+    message: 'Password reset email sent successfully'
+  });
+});
+
+// @desc    Reset password with token
+// @route   PUT /api/auth/reset-password/:token
+// @access  Public
+export const resetPassword = asyncHandler(async (req, res, next) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  if (!password) {
+    throw new AppError('Please provide new password', 400);
+  }
+
+  // TODO: Hash the token from params
+  // const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+  // TODO: Find user with valid token
+  // const user = await User.findOne({
+  //   resetPasswordToken: hashedToken,
+  //   resetPasswordExpire: { $gt: Date.now() }
+  // });
+
+  // if (!user) {
+  //   throw new AppError('Invalid or expired reset token', 400);
+  // }
+
+  // TODO: Update password
+  // const salt = await bcryptjs.genSalt(10);
+  // user.password = await bcryptjs.hash(password, salt);
+  // user.resetPasswordToken = undefined;
+  // user.resetPasswordExpire = undefined;
+  // await user.save();
+
+  logInfo('Password reset successful', { token });
+
+  res.status(200).json({
+    success: true,
+    message: 'Password reset successful. You can now login with your new password.'
+  });
+});
+
+// @desc    Refresh JWT token
+// @route   POST /api/auth/refresh-token
+// @access  Public
+export const refreshToken = asyncHandler(async (req, res, next) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    throw new AppError('Refresh token is required', 400);
+  }
+
+  try {
+    // Verify refresh token
+    const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret);
+
+    // Generate new access token
+    const newToken = jwt.sign(
+      { 
+        id: decoded.id, 
+        role: decoded.role,
+        email: decoded.email,
+        department: decoded.department
+      },
+      config.jwt.secret,
+      { expiresIn: config.jwt.expire }
+    );
+
+    res.status(200).json({
+      success: true,
+      token: newToken
+    });
+  } catch (error) {
+    throw new AppError('Invalid or expired refresh token', 401);
+  }
+});
+
+export default {
+  register,
+  login,
+  getMe,
+  logout,
+  changePassword,
+  forgotPassword,
+  resetPassword,
+  refreshToken
+};
