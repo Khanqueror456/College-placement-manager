@@ -8,13 +8,14 @@ import StudentProfile from './pages/student_profile';
 import EditStudentProfile from './pages/EditStudentProfile';
 import StudentDrives from './pages/StudentDrives';
 import StudentDriveStatus from './pages/StudentDriveStatus';
+import HomePage from './pages/homepage';
 
 function App() {
   const [count, setCount] = useState(0)
 
   return (
     <>
-      <StudentDriveStatus />
+      <HomePage />
         
     </>
   )
