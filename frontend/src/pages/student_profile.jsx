@@ -116,7 +116,7 @@ const StudentProfile = ({ profile = MOCK_STUDENT_PROFILE, onLogout }) => {
           <div className="
             lg:col-span-1 p-6 rounded-2xl flex flex-col items-center text-center
             bg-slate-700 bg-opacity-25 backdrop-filter backdrop-blur-lg
-            border border-slate-500 border-opacity-30 shadow-lg
+            border border-slate-500 border-opacity-30 shadow-lg relative
           ">
             <img
               src={profile.profilePhoto || DEFAULT_AVATAR}
@@ -133,9 +133,34 @@ const StudentProfile = ({ profile = MOCK_STUDENT_PROFILE, onLogout }) => {
 
             <div className="text-left w-full space-y-2 text-slate-300">
               <p className="flex items-center"><BookOpenIcon /> {profile.branch}</p>
-              <p className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-2"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3V12m-3-2.25L12 21m-4.5-10.5L12 21M21 3v.25M21 12v.25" /></svg> {profile.year}, {profile.semester}</p>
+              <p className="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3V12m-3-2.25L12 21m-4.5-10.5L12 21M21 3v.25M21 12v.25" />
+                </svg>
+                {profile.year}, {profile.semester}
+              </p>
               <p className="flex items-center text-sky-300"><MailIcon /> {profile.email}</p>
+
+              {/* --- Edit Profile Button --- */}
+              <div className="flex justify-center mt-4">
+                <Link
+                  to="/edit-profile"
+                  className="
+        inline-flex items-center px-4 py-2 rounded-lg font-semibold
+        bg-sky-600 hover:bg-sky-500
+        text-white transition-all duration-300
+        shadow-md hover:shadow-sky-400/50
+        border border-sky-400 absolute bottom-10
+      "
+                >
+                  Edit Profile
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 ml-2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-5m-1.5-7.5a2.121 2.121 0 113 3L12 21l-4-1 1-4 9.5-9.5z" />
+                  </svg>
+                </Link>
+              </div>
             </div>
+
           </div>
 
           {/* --- Details Sections (Right/Bottom Section) --- */}

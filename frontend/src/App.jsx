@@ -4,7 +4,6 @@ import viteLogo from '/vite.svg'
 import './App.css'
 import Login from './pages/login';
 import StudentProfile from './pages/student_profile';
-import EditStudentProfile from './pages/EditStudentProfile';
 import StudentDrives from './pages/StudentDrives';
 import StudentDriveStatus from './pages/StudentDriveStatus';
 import { Routes, Route, Link } from 'react-router-dom';
@@ -16,6 +15,10 @@ import HodDashboard from './pages/hod_dashboard';
 import HodStatistics from './components/hod_stats';
 import HodPlacementReport from "./components/hod_reports"
 import StudentOverview from "./components/student_dashboard"
+import EditStudentProfile from "./pages/EditStudentProfile.jsx"
+import TpoOverview from './pages/tpo_overview.jsx';
+import TpoDriveStats from "./components/drive_stats.jsx"
+import TpoDashboard from './pages/tpo_dashboard.jsx';
 
 function App() {
 
@@ -31,6 +34,9 @@ function App() {
         <Route path="/hod-report" element={<HodPlacementReport/>}/>
         <Route path="/student-profile" element={<StudentProfile/>}/>
         <Route path="/student-dashboard" element={<StudentOverview/>}/>
+        <Route path="/edit-profile" element={<EditStudentProfile/>}/>
+        <Route path="/tpo-overview" element={<TpoOverview/>}/>
+        <Route path="/tpo-dashboard" element={<TpoDashboard/>}/>
         
         
        {/* This is the "catch-all" route for 404s */}
