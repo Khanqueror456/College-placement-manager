@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import config from './config/config.js';
 import { testConnection, syncDatabase } from './config/database.js';
 import { 
@@ -13,6 +15,10 @@ import {
   handleUnhandledRejection 
 } from './middlewares/errorHandler.js';
 import { httpLogger, httpConsoleLogger, logger } from './middlewares/logger.js';
+
+// Get __dirname equivalent for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Handle uncaught exceptions
 handleUncaughtException();
@@ -50,7 +56,7 @@ if (config.nodeEnv === 'development') {
 }
 
 // Static file serving (for uploaded files)
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -83,6 +89,7 @@ import studentRoutes from './routes/studentRoutes.js';
 import driveRoutes from './routes/driveRoutes.js';
 import hodRoutes from './routes/hodRoutes.js';
 import tpoRoutes from './routes/tpoRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 import emailTestRoutes from './routes/emailTestRoutes.js';
 import oauthRoutes from './routes/oauthRoutes.js';
 
@@ -92,6 +99,7 @@ app.use('/api/student', studentRoutes);
 app.use('/api/drives', driveRoutes);
 app.use('/api/hod', hodRoutes);
 app.use('/api/tpo', tpoRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use('/api/test/email', emailTestRoutes);
 app.use('/auth', oauthRoutes);
 
