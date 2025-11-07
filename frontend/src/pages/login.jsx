@@ -68,7 +68,6 @@ const RoleSelectionScreen = ({ onSelectRole }) => {
 // This component now manages "Login" vs "Sign Up" state
 const LoginScreen = ({ role, onBack}) => {
   const navigate = useNavigate();
-  // 'login' or 'signup'
   const location = useLocation();
   const initialMode = location.state?.mode || "login"
   const [authMode, setAuthMode] = useState(initialMode);
@@ -125,15 +124,17 @@ const LoginScreen = ({ role, onBack}) => {
         
         setSuccess('Login successful! Redirecting...');
         
-        // Redirect based on role
+        // Redirect based on role from server response
         setTimeout(() => {
-          const userRole = response.user.role.toLowerCase();
-          if (userRole === 'student') {
-            navigate('/student/dashboard');
-          } else if (userRole === 'hod') {
-            navigate('/hod/dashboard');
-          } else if (userRole === 'tpo') {
-            navigate('/tpo/dashboard');
+          const userRole = response.user.role; // Use the role as-is from server (uppercase)
+          console.log('User role from server:', userRole); // Debug log
+          
+          if (userRole === 'STUDENT') {
+            navigate('/student-dashboard');
+          } else if (userRole === 'HOD') {
+            navigate('/hod-dashboard');
+          } else if (userRole === 'TPO') {
+            navigate('/tpo-dashboard');
           } else {
             navigate('/');
           }
@@ -170,13 +171,15 @@ const LoginScreen = ({ role, onBack}) => {
         // Redirect or switch to login
         setTimeout(() => {
           if (response.user.isApproved) {
-            const userRole = response.user.role.toLowerCase();
-            if (userRole === 'student') {
-              navigate('/student/dashboard');
-            } else if (userRole === 'hod') {
-              navigate('/hod/dashboard');
-            } else if (userRole === 'tpo') {
-              navigate('/tpo/dashboard');
+            const userRole = response.user.role; // Use the role as-is from server (uppercase)
+            console.log('User role from server (signup):', userRole); // Debug log
+            
+            if (userRole === 'STUDENT') {
+              navigate('/student-dashboard');
+            } else if (userRole === 'HOD') {
+              navigate('/hod-dashboard');
+            } else if (userRole === 'TPO') {
+              navigate('/tpo-dashboard');
             }
           } else {
             setAuthMode('login');

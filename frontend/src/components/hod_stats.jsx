@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -17,7 +18,8 @@ import {
   TrendingUp,
   CheckCircle,
   Clock,
-  Download
+  Download,
+  ArrowLeft
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -224,10 +226,26 @@ const HodStatistics = () => {
       style={{ backgroundColor: '#0f172a', color: '#e2e8f0' }}
       ref={reportRef} // 👈 capture this section
     >
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-extrabold mb-8" style={{ color: '#e2e8f0' }}>
-          {MOCK_DATA.department} Department Statistics
-        </h1>
+      <div className="flex justify-between items-center mb-8">
+        <div className="flex items-center gap-4">
+          <Link to="/hod-dashboard">
+            <button
+              className="flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300"
+              style={{
+                backgroundColor: '#475569',
+                color: '#e2e8f0',
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#64748b')}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#475569')}
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Back to Dashboard
+            </button>
+          </Link>
+          <h1 className="text-3xl font-extrabold" style={{ color: '#e2e8f0' }}>
+            {MOCK_DATA.department} Department Statistics
+          </h1>
+        </div>
 
         <button
           className="flex items-center justify-center px-5 py-2 rounded-lg font-semibold transition-all duration-300"
