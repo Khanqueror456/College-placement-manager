@@ -1,11 +1,110 @@
-import express from "express"
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import cookieParser from 'cookie-parser';
+import rateLimit from 'express-rate-limit';
+import config from './config/config.js';
+import { 
+  errorHandler, 
+  notFound, 
+  handleUncaughtException, 
+  handleUnhandledRejection 
+} from './middlewares/errorHandler.js';
+import { httpLogger, httpConsoleLogger, logger } from './middlewares/logger.js';
+
+// Handle uncaught exceptions
+handleUncaughtException();
+
+// Initialize Express app
 const app = express();
-const port = 3000;
+const port = config.port;
 
+// Security Middleware
+app.use(helmet()); // Security headers
+app.use(cors(config.cors)); // CORS configuration
+
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: config.rateLimit.windowMs,
+  max: config.rateLimit.max,
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', limiter);
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
+
+// Compression middleware
+app.use(compression());
+
+// Logging middleware
+app.use(httpLogger); // File logging
+if (config.nodeEnv === 'development') {
+  app.use(httpConsoleLogger); // Console logging in development
+}
+
+// Static file serving (for uploaded files)
+app.use('/uploads', express.static('uploads'));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Server is running',
+    timestamp: new Date().toISOString(),
+    environment: config.nodeEnv
+  });
+});
+
+// API Routes
 app.get('/', (req, res) => {
-  res.send('Hello World from Node.js Backend!');
+  res.json({
+    success: true,
+    message: 'College Placement Management Portal API',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      api: '/api'
+    }
+  });
 });
 
-app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}`);
+// Import routes (to be created)
+// import authRoutes from './routes/auth.js';
+// import studentRoutes from './routes/student.js';
+// import driveRoutes from './routes/drive.js';
+// import applicationRoutes from './routes/application.js';
+// import hodRoutes from './routes/hod.js';
+// import tpoRoutes from './routes/tpo.js';
+
+// Mount routes
+// app.use('/api/auth', authRoutes);
+// app.use('/api/students', studentRoutes);
+// app.use('/api/drives', driveRoutes);
+// app.use('/api/applications', applicationRoutes);
+// app.use('/api/hod', hodRoutes);
+// app.use('/api/tpo', tpoRoutes);
+
+// 404 Handler
+app.use(notFound);
+
+// Global Error Handler (must be last)
+app.use(errorHandler);
+
+// Start server
+const server = app.listen(port, () => {
+  logger.info(`Server listening at http://localhost:${port}`);
+  logger.info(`Environment: ${config.nodeEnv}`);
+  console.log(`✅ Server running on port ${port}`);
+  console.log(`🌍 Environment: ${config.nodeEnv}`);
 });
+
+// Handle unhandled promise rejections
+handleUnhandledRejection(server);
+
+export default app;
