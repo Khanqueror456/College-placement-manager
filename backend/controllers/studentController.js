@@ -16,6 +16,8 @@ import User from '../models/users.js';
 export const getProfile = asyncHandler(async (req, res, next) => {
   const studentId = req.user.id;
 
+  console.log('Fetching profile for student ID:', studentId);
+
   // Fetch student profile from database
   const student = await User.findByPk(studentId, {
     attributes: { exclude: ['password'] }
@@ -24,6 +26,8 @@ export const getProfile = asyncHandler(async (req, res, next) => {
   if (!student) {
     throw new AppError('Student profile not found', 404);
   }
+
+  console.log('Student profile found:', student.toJSON());
 
   res.status(200).json({
     success: true,
@@ -38,10 +42,9 @@ export const updateProfile = asyncHandler(async (req, res, next) => {
   const studentId = req.user.id;
   const updates = req.body;
 
-  // Fields that students can update
+  // Fields that students can update (only existing database fields)
   const allowedUpdates = [
-    'name', 'phone', 'cgpa', 'backlogs', 'skills', 
-    'github_url', 'linkedin_url', 'address', 'date_of_birth', 'roll_number', 'batch_year'
+    'name', 'phone', 'cgpa', 'student_id', 'batch_year'
   ];
 
   // Filter out fields that are not allowed
@@ -63,12 +66,6 @@ export const updateProfile = asyncHandler(async (req, res, next) => {
   Object.keys(filteredUpdates).forEach(key => {
     student[key] = filteredUpdates[key];
   });
-
-  // Mark profile as completed if name is provided
-  if (filteredUpdates.name) {
-    student.profile_completed = true;
-    student.profile_completed_at = new Date();
-  }
 
   await student.save();
 

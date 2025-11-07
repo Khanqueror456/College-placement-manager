@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 // --- SVG Icons ---
 const LogoutIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mr-2">
@@ -27,8 +28,15 @@ const MOCK_STUDENTS = [
 ];
 
 // --- HOD Dashboard Component ---
-const HodDashboard = ({ onLogout }) => {
+const HodDashboard = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [students, setStudents] = useState(MOCK_STUDENTS);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   const handleUpdateStatus = (studentId, newStatus) => {
     setStudents(currentStudents =>
@@ -85,7 +93,7 @@ const HodDashboard = ({ onLogout }) => {
           </Link>
 
           <button
-            onClick={onLogout}
+            onClick={handleLogout}
             className="
             flex items-center px-4 py-2 rounded-lg font-semibold
             bg-slate-700 hover:bg-slate-600
