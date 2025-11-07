@@ -16,6 +16,13 @@ import EditStudentProfile from "./pages/EditStudentProfile.jsx"
 import TpoOverview from './pages/tpo_overview.jsx';
 import TpoDriveStats from "./components/drive_stats.jsx"
 import TpoDashboard from './pages/tpo_dashboard.jsx';
+import { AuthProvider } from './context/AuthContext';
+import ApiTest from './pages/ApiTest';
+import ProtectedRoute from './components/ProtectedRoute';
+import StudentDashboard from './pages/StudentDashboard';
+import StudentProfileNew from './pages/StudentProfile';
+import ViewDrives from './pages/ViewDrives';
+import MyApplications from './pages/MyApplications';
 
 function App() {
 
@@ -77,7 +84,7 @@ function App() {
           path="/student-profile" 
           element={
             <ProtectedRoute allowedRoles={['STUDENT']}>
-              <StudentProfile/>
+              <StudentProfileNew/>
             </ProtectedRoute>
           }
         />
@@ -100,7 +107,7 @@ function App() {
         
         {/* Old Student Routes (keeping for backward compatibility) */}
         <Route path="/student/dashboard" element={<StudentOverview/>}/>
-        <Route path="/student/profile" element={<StudentProfileOld/>}/>
+        <Route path="/student/profile" element={<StudentProfile/>}/>
         <Route path="/student/drives" element={<StudentDrives/>}/>
         <Route path="/student/status" element={<StudentDriveStatus/>}/>
         
