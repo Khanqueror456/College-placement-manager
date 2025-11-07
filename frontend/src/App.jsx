@@ -20,6 +20,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import StudentProfileNew from './pages/StudentProfile';
 import ViewDrives from './pages/ViewDrives';
 import MyApplications from './pages/MyApplications';
+import TpoOverview from './components/tpo_overview.jsx';
 
 function App() {
 
@@ -37,6 +38,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['TPO']}>
               <TpoDashboard/>
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/tpo-overview" 
+          element={
+            <ProtectedRoute allowedRoles={['TPO']}>
+              <TpoOverview/>
             </ProtectedRoute>
           }
         />
