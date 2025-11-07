@@ -77,21 +77,19 @@ app.get('/', (req, res) => {
   });
 });
 
-// Import routes (to be created)
-// import authRoutes from './routes/auth.js';
-// import studentRoutes from './routes/student.js';
-// import driveRoutes from './routes/drive.js';
-// import applicationRoutes from './routes/application.js';
-// import hodRoutes from './routes/hod.js';
-// import tpoRoutes from './routes/tpo.js';
+// Import routes
+import authRoutes from './routes/authRoutes.js';
+import studentRoutes from './routes/studentRoutes.js';
+import driveRoutes from './routes/driveRoutes.js';
+import hodRoutes from './routes/hodRoutes.js';
+import tpoRoutes from './routes/tpoRoutes.js';
 
 // Mount routes
-// app.use('/api/auth', authRoutes);
-// app.use('/api/students', studentRoutes);
-// app.use('/api/drives', driveRoutes);
-// app.use('/api/applications', applicationRoutes);
-// app.use('/api/hod', hodRoutes);
-// app.use('/api/tpo', tpoRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/student', studentRoutes);
+app.use('/api/drives', driveRoutes);
+app.use('/api/hod', hodRoutes);
+app.use('/api/tpo', tpoRoutes);
 
 // 404 Handler
 app.use(notFound);

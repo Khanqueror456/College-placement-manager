@@ -243,7 +243,7 @@ async function tpoOperationsTests() {
       companyName: 'Google',
       jobRole: 'Software Engineer',
       jobDescription: 'Full-time SDE position',
-      package: '25 LPA',
+      package: 25,  // Changed from '25 LPA' to numeric value
       eligibilityCriteria: {
         minCGPA: 7.0,
         allowedDepartments: ['Computer Science', 'IT'],
@@ -271,7 +271,7 @@ async function tpoOperationsTests() {
   // Test 2.5: Update Drive
   await runTest('Update Drive', async () => {
     const response = await makeRequest('PUT', `/tpo/drives/${testData.driveId || 'drive123'}`, {
-      package: '30 LPA',
+      package: 30,  // Changed from '30 LPA' to numeric value
       status: 'active'
     }, testData.tpoToken);
 
@@ -312,7 +312,7 @@ async function studentOperationsTests() {
 
   // Test 3.3: Get Active Drives
   await runTest('Get Active Drives (Student)', async () => {
-    const response = await makeRequest('GET', '/student/drives', null, testData.studentToken);
+    const response = await makeRequest('GET', '/student/drives/active', null, testData.studentToken);
     assert(response.status === 200, `Expected 200, got ${response.status}`);
     assert(Array.isArray(response.data.drives), 'Drives array not received');
   });
@@ -340,7 +340,7 @@ async function studentOperationsTests() {
   // Test 3.6: Get Application Status
   await runTest('Get Application Status', async () => {
     const appId = testData.applicationId || 'app_1';
-    const response = await makeRequest('GET', `/student/applications/${appId}`, null, testData.studentToken);
+    const response = await makeRequest('GET', `/student/applications/${appId}/status`, null, testData.studentToken);
     assert(response.status === 200, `Expected 200, got ${response.status}`);
   });
 
@@ -368,7 +368,7 @@ async function hodOperationsTests() {
   // Test 4.2: Approve Student
   await runTest('Approve Student', async () => {
     const studentId = testData.studentId || 'student_1';
-    const response = await makeRequest('PUT', `/hod/approvals/${studentId}/approve`, null, testData.hodToken);
+    const response = await makeRequest('POST', `/hod/approvals/${studentId}/approve`, null, testData.hodToken);
     assert(response.status === 200, `Expected 200, got ${response.status}`);
   });
 
@@ -437,7 +437,7 @@ async function driveOperationsTests() {
   // Test 5.6: Check Eligibility
   await runTest('Check Drive Eligibility', async () => {
     const driveId = testData.driveId || 'drive_1';
-    const response = await makeRequest('GET', `/drives/${driveId}/eligibility`, null, testData.studentToken);
+    const response = await makeRequest('GET', `/drives/${driveId}/check-eligibility`, null, testData.studentToken);
     assert(response.status === 200, `Expected 200, got ${response.status}`);
   });
 }
@@ -469,7 +469,7 @@ async function advancedTpoOperationsTests() {
 
   // Test 6.3: Bulk Update Status
   await runTest('Bulk Update Application Status', async () => {
-    const response = await makeRequest('PUT', '/tpo/applications/bulk-update', {
+    const response = await makeRequest('POST', '/tpo/applications/bulk-update', {
       applicationIds: [testData.applicationId || 'app_1', 'app_2'],
       status: 'shortlisted',
       round: 'Technical Interview'
@@ -481,7 +481,7 @@ async function advancedTpoOperationsTests() {
   // Test 6.4: Close Drive
   await runTest('Close Drive', async () => {
     const driveId = testData.driveId || 'drive_1';
-    const response = await makeRequest('PUT', `/tpo/drives/${driveId}/close`, null, testData.tpoToken);
+    const response = await makeRequest('POST', `/tpo/drives/${driveId}/close`, null, testData.tpoToken);
     assert(response.status === 200, `Expected 200, got ${response.status}`);
   });
 }

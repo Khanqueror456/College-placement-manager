@@ -252,6 +252,27 @@ export const validateDateRange = [
 ];
 
 /**
+ * Change Password Validation
+ */
+export const validateChangePassword = [
+  body('currentPassword')
+    .notEmpty().withMessage('Current password is required'),
+  
+  body('newPassword')
+    .notEmpty().withMessage('New password is required')
+    .isLength({ min: 8 }).withMessage('New password must be at least 8 characters')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
+    .withMessage('New password must contain uppercase, lowercase, number, and special character'),
+  
+  body('confirmPassword')
+    .notEmpty().withMessage('Confirm password is required')
+    .custom((value, { req }) => value === req.body.newPassword)
+    .withMessage('Passwords do not match'),
+  
+  validate
+];
+
+/**
  * Department Validation
  */
 export const validateDepartment = [
@@ -276,6 +297,7 @@ export default {
   validateApplication,
   validateRoundResult,
   validateEmail,
+  validateChangePassword,
   validateId,
   validatePagination,
   validateDateRange,

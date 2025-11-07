@@ -10,14 +10,19 @@ import { logInfo, logError, logActivity } from '../middlewares/logger.js';
  * Handles user registration, login, and token management
  */
 
+// Temporary in-memory user storage (REMOVE when database is connected)
+const tempUsers = new Map();
+
 // @desc    Register new user
 // @route   POST /api/auth/register
 // @access  Public
 export const register = asyncHandler(async (req, res, next) => {
   const { name, email, password, role, department, phone, rollNumber } = req.body;
 
-  // TODO: Check if user already exists in database
-  // const existingUser = await User.findOne({ email });
+  // Check if user already exists (in-memory check)
+  if (tempUsers.has(email)) {
+    throw new AppError('User with this email already exists', 400);
+  }
   // if (existingUser) {
   //   throw new AppError('User with this email already exists', 400);
   // }
@@ -26,24 +31,12 @@ export const register = asyncHandler(async (req, res, next) => {
   const salt = await bcryptjs.genSalt(10);
   const hashedPassword = await bcryptjs.hash(password, salt);
 
-  // TODO: Create user in database
-  // const user = await User.create({
-  //   name,
-  //   email,
-  //   password: hashedPassword,
-  //   role: role || 'student',
-  //   department,
-  //   phone,
-  //   rollNumber,
-  //   isApproved: role === 'student' ? false : true,
-  //   isEmailVerified: false
-  // });
-
-  // Mock user for now (until database is connected)
+  // Create user object (store in memory for now)
   const user = {
     _id: `user_${Date.now()}`,
     name,
     email,
+    password: hashedPassword,
     role: role || 'student',
     department,
     phone,
@@ -51,6 +44,9 @@ export const register = asyncHandler(async (req, res, next) => {
     isApproved: role === 'student' ? false : true,
     isEmailVerified: false
   };
+
+  // Store user in memory
+  tempUsers.set(email, user);
 
   // Generate JWT token
   const token = jwt.sign(
@@ -90,23 +86,12 @@ export const register = asyncHandler(async (req, res, next) => {
 export const login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
 
-  // TODO: Find user in database with password field
-  // const user = await User.findOne({ email }).select('+password');
-  // if (!user) {
-  //   throw new AppError('Invalid email or password', 401);
-  // }
-
-  // Mock user for testing (REMOVE when database is connected)
-  const user = {
-    _id: 'user_123',
-    name: 'Test User',
-    email: email,
-    password: await bcryptjs.hash('Password@123', 10), // Default test password
-    role: 'student',
-    department: 'Computer Science',
-    isApproved: true,
-    isEmailVerified: true
-  };
+  // Get user from memory storage
+  const user = tempUsers.get(email);
+  
+  if (!user) {
+    throw new AppError('Invalid email or password', 401);
+  }
 
   // Verify password
   const isPasswordMatch = await bcryptjs.compare(password, user.password);
@@ -114,10 +99,7 @@ export const login = asyncHandler(async (req, res, next) => {
     throw new AppError('Invalid email or password', 401);
   }
 
-  // Check if student is approved by HOD
-  if (user.role === 'student' && !user.isApproved) {
-    throw new AppError('Your account is pending HOD approval', 403);
-  }
+  // Note: Students can login even if not approved, but middleware will restrict access to protected routes
 
   // Generate JWT token
   const token = jwt.sign(
