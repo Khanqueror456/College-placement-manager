@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext';
  * @param {ReactNode} children - The component to render if authorized
  */
 const ProtectedRoute = ({ children, allowedRoles = [] }) => {
-  const { isAuthenticated, hasRole, loading } = useAuth();
+  const { user, isAuthenticated, hasRole, loading } = useAuth();
 
   // Show loading state while checking authentication
   if (loading) {
@@ -35,7 +35,6 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     
     if (!hasRequiredRole) {
       // Redirect to appropriate dashboard based on user's actual role
-      const { user } = useAuth();
       const userRole = user?.role?.toUpperCase();
       
       // Redirect to their own dashboard

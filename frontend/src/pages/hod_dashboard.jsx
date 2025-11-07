@@ -56,7 +56,6 @@ const HodDashboard = ({ onLogout }) => {
 
           <Link to="/hod-stats">
             <button
-              onClick={onLogout}
               className="
             flex items-center px-4 py-2 rounded-lg font-semibold
             bg-slate-700 hover:bg-slate-600
@@ -67,6 +66,21 @@ const HodDashboard = ({ onLogout }) => {
             >
               <LogoutIcon />
               Stats
+            </button>
+          </Link>
+
+          <Link to="/hod-report">
+            <button
+              className="
+            flex items-center px-4 py-2 rounded-lg font-semibold
+            bg-slate-700 hover:bg-slate-600
+            border border-slate-500 hover:border-sky-400
+            text-slate-200 hover:text-sky-400
+            transition-all duration-300
+          "
+            >
+              <LogoutIcon />
+              Reports
             </button>
           </Link>
 

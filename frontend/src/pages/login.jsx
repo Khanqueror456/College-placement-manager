@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { login, register } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 // --- SVG Icon for Back Button ---
 const BackArrowIcon = () => (
@@ -68,8 +68,8 @@ const RoleSelectionScreen = ({ onSelectRole }) => {
 // This component now manages "Login" vs "Sign Up" state
 const LoginScreen = ({ role, onBack}) => {
   const navigate = useNavigate();
-  // 'login' or 'signup'
   const location = useLocation();
+  const { login, signup } = useAuth();
   const initialMode = location.state?.mode || "login"
   const [authMode, setAuthMode] = useState(initialMode);
   const isLoginMode = authMode === 'login';
@@ -121,19 +121,24 @@ const LoginScreen = ({ role, onBack}) => {
     try {
       if (isLoginMode) {
         // Login
-        const response = await login(formData.email, formData.password, getRoleKey(role));
+        const response = await login({
+          email: formData.email,
+          password: formData.password
+        });
         
         setSuccess('Login successful! Redirecting...');
         
-        // Redirect based on role
+        // Redirect based on role from server response
         setTimeout(() => {
-          const userRole = response.user.role.toLowerCase();
-          if (userRole === 'student') {
-            navigate('/student/dashboard');
-          } else if (userRole === 'hod') {
-            navigate('/hod/dashboard');
-          } else if (userRole === 'tpo') {
-            navigate('/tpo/dashboard');
+          const userRole = response.user.role; // Use the role as-is from server (uppercase)
+          console.log('User role from server:', userRole); // Debug log
+          
+          if (userRole === 'STUDENT') {
+            navigate('/student-dashboard');
+          } else if (userRole === 'HOD') {
+            navigate('/hod-dashboard');
+          } else if (userRole === 'TPO') {
+            navigate('/tpo-dashboard');
           } else {
             navigate('/');
           }
@@ -163,20 +168,22 @@ const LoginScreen = ({ role, onBack}) => {
           rollNumber: formData.rollNumber || undefined,
         };
 
-        const response = await register(userData);
+        const response = await signup(userData);
         
         setSuccess(response.message || 'Registration successful!');
         
         // Redirect or switch to login
         setTimeout(() => {
-          if (response.user.isApproved) {
-            const userRole = response.user.role.toLowerCase();
-            if (userRole === 'student') {
-              navigate('/student/dashboard');
-            } else if (userRole === 'hod') {
-              navigate('/hod/dashboard');
-            } else if (userRole === 'tpo') {
-              navigate('/tpo/dashboard');
+          if (response.user.is_approved) {
+            const userRole = response.user.role; // Use the role as-is from server (uppercase)
+            console.log('User role from server (signup):', userRole); // Debug log
+            
+            if (userRole === 'STUDENT') {
+              navigate('/student-dashboard');
+            } else if (userRole === 'HOD') {
+              navigate('/hod-dashboard');
+            } else if (userRole === 'TPO') {
+              navigate('/tpo-dashboard');
             }
           } else {
             setAuthMode('login');

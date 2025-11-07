@@ -14,10 +14,12 @@ import HodPlacementReport from "./components/hod_reports"
 import StudentOverview from "./components/student_dashboard"
 import TpoDashboard from './pages/tpo_dashboard.jsx';
 import { AuthProvider } from './context/AuthContext';
-import ProtectedRoute from "./components/ProtectedRoute.jsx"
-import StudentDashboard from "./pages/StudentDashboard.jsx"
-import ViewDrives from "./pages/ViewDrives.jsx"
-import MyApplications from "./pages/MyApplications.jsx"
+import ApiTest from './pages/ApiTest';
+import ProtectedRoute from './components/ProtectedRoute';
+import StudentDashboard from './pages/StudentDashboard';
+import StudentProfileNew from './pages/StudentProfile';
+import ViewDrives from './pages/ViewDrives';
+import MyApplications from './pages/MyApplications';
 
 function App() {
 
@@ -78,7 +80,7 @@ function App() {
           path="/student-profile" 
           element={
             <ProtectedRoute allowedRoles={['STUDENT']}>
-              <StudentProfile/>
+              <StudentProfileNew/>
             </ProtectedRoute>
           }
         />

@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       setError(null);
-      const response = await authService.login(credentials);
+      const response = await authService.login(credentials.email, credentials.password);
       setUser(response.user);
       return response;
     } catch (err) {

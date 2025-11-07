@@ -3,6 +3,7 @@ import { asyncHandler } from '../middlewares/errorHandler.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { logInfo, logActivity } from '../middlewares/logger.js';
 import { deleteFile, getFileUrl } from '../middlewares/upload.js';
+import User from '../models/users.js';
 
 /**
  * Student Controller
@@ -15,33 +16,14 @@ import { deleteFile, getFileUrl } from '../middlewares/upload.js';
 export const getProfile = asyncHandler(async (req, res, next) => {
   const studentId = req.user.id;
 
-  // TODO: Fetch student profile from database
-  // const student = await User.findById(studentId)
-  //   .select('-password')
-  //   .populate('department');
+  // Fetch student profile from database
+  const student = await User.findByPk(studentId, {
+    attributes: { exclude: ['password'] }
+  });
   
-  // if (!student) {
-  //   throw new AppError('Student profile not found', 404);
-  // }
-
-  // Mock student profile
-  const student = {
-    id: studentId,
-    name: 'John Doe',
-    email: req.user.email,
-    role: 'student',
-    department: req.user.department,
-    rollNumber: 'CS2021001',
-    phone: '9876543210',
-    cgpa: 8.5,
-    backlogs: 0,
-    skills: ['JavaScript', 'React', 'Node.js', 'MongoDB'],
-    resumeUrl: '/uploads/resumes/resume-student123.pdf',
-    githubUrl: 'https://github.com/johndoe',
-    linkedinUrl: 'https://linkedin.com/in/johndoe',
-    isApproved: true,
-    createdAt: new Date()
-  };
+  if (!student) {
+    throw new AppError('Student profile not found', 404);
+  }
 
   res.status(200).json({
     success: true,
@@ -59,7 +41,7 @@ export const updateProfile = asyncHandler(async (req, res, next) => {
   // Fields that students can update
   const allowedUpdates = [
     'name', 'phone', 'cgpa', 'backlogs', 'skills', 
-    'githubUrl', 'linkedinUrl', 'address', 'dateOfBirth'
+    'github_url', 'linkedin_url', 'address', 'date_of_birth', 'roll_number', 'batch_year'
   ];
 
   // Filter out fields that are not allowed
@@ -70,16 +52,30 @@ export const updateProfile = asyncHandler(async (req, res, next) => {
     }
   });
 
-  // TODO: Update student in database
-  // const student = await User.findByIdAndUpdate(
-  //   studentId,
-  //   filteredUpdates,
-  //   { new: true, runValidators: true }
-  // ).select('-password');
+  // Update student in database
+  const student = await User.findByPk(studentId);
 
-  // if (!student) {
-  //   throw new AppError('Student not found', 404);
-  // }
+  if (!student) {
+    throw new AppError('Student not found', 404);
+  }
+
+  // Update the fields
+  Object.keys(filteredUpdates).forEach(key => {
+    student[key] = filteredUpdates[key];
+  });
+
+  // Mark profile as completed if name is provided
+  if (filteredUpdates.name) {
+    student.profile_completed = true;
+    student.profile_completed_at = new Date();
+  }
+
+  await student.save();
+
+  // Return updated profile without password
+  const updatedStudent = await User.findByPk(studentId, {
+    attributes: { exclude: ['password'] }
+  });
 
   // Log activity
   logActivity('PROFILE_UPDATED', studentId, { updates: Object.keys(filteredUpdates) });
@@ -87,7 +83,7 @@ export const updateProfile = asyncHandler(async (req, res, next) => {
   res.status(200).json({
     success: true,
     message: 'Profile updated successfully',
-    profile: filteredUpdates
+    profile: updatedStudent
   });
 });
 

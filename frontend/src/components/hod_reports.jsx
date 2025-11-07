@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import {
   Chart as ChartJS,
   ArcElement,
@@ -12,7 +13,8 @@ import {
   Users, 
   BarChartHorizontal, 
   Award,
-  CheckSquare
+  CheckSquare,
+  ArrowLeft
 } from 'lucide-react';
 import { format } from 'date-fns'; // To format the timestamp
 
@@ -151,22 +153,38 @@ const HodPlacementReport = () => {
     >
       {/* --- Header --- */}
       <div className="flex flex-col md:flex-row justify-between md:items-center mb-8 gap-4">
-        <div>
-          <h1
-            className="text-3xl font-extrabold"
-            style={{ color: '#e2e8f0' }}
-          >
-            Placement Report
-          </h1>
-          <p className="text-lg" style={{ color: '#38bdf8' }}>
-            {report.department} - {report.academicYear}
-          </p>
-          <p
-            className="text-xs mt-1"
-            style={{ color: '#94a3b8' }}
-          >
-            Generated: {format(new Date(report.generatedAt), 'PPpp')}
-          </p>
+        <div className="flex items-center gap-4">
+          <Link to="/hod-dashboard">
+            <button
+              className="flex items-center justify-center px-4 py-2 rounded-lg font-semibold transition-all duration-300"
+              style={{
+                backgroundColor: '#475569',
+                color: '#e2e8f0',
+              }}
+              onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#64748b')}
+              onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#475569')}
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Back to Dashboard
+            </button>
+          </Link>
+          <div>
+            <h1
+              className="text-3xl font-extrabold"
+              style={{ color: '#e2e8f0' }}
+            >
+              Placement Report
+            </h1>
+            <p className="text-lg" style={{ color: '#38bdf8' }}>
+              {report.department} - {report.academicYear}
+            </p>
+            <p
+              className="text-xs mt-1"
+              style={{ color: '#94a3b8' }}
+            >
+              Generated: {format(new Date(report.generatedAt), 'PPpp')}
+            </p>
+          </div>
         </div>
 
         <button
