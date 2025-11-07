@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { login, register } from '../services/authService';
+import { useAuth } from '../context/AuthContext';
 
 // --- SVG Icon for Back Button ---
 const BackArrowIcon = () => (
@@ -69,6 +69,7 @@ const RoleSelectionScreen = ({ onSelectRole }) => {
 const LoginScreen = ({ role, onBack}) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { login, signup } = useAuth();
   const initialMode = location.state?.mode || "login"
   const [authMode, setAuthMode] = useState(initialMode);
   const isLoginMode = authMode === 'login';
@@ -120,7 +121,10 @@ const LoginScreen = ({ role, onBack}) => {
     try {
       if (isLoginMode) {
         // Login
-        const response = await login(formData.email, formData.password, getRoleKey(role));
+        const response = await login({
+          email: formData.email,
+          password: formData.password
+        });
         
         setSuccess('Login successful! Redirecting...');
         
@@ -164,13 +168,13 @@ const LoginScreen = ({ role, onBack}) => {
           rollNumber: formData.rollNumber || undefined,
         };
 
-        const response = await register(userData);
+        const response = await signup(userData);
         
         setSuccess(response.message || 'Registration successful!');
         
         // Redirect or switch to login
         setTimeout(() => {
-          if (response.user.isApproved) {
+          if (response.user.is_approved) {
             const userRole = response.user.role; // Use the role as-is from server (uppercase)
             console.log('User role from server (signup):', userRole); // Debug log
             

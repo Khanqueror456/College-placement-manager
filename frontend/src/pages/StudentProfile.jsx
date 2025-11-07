@@ -20,8 +20,8 @@ const StudentProfilePage = () => {
     phone: '',
     cgpa: '',
     skills: [],
-    githubUrl: '',
-    linkedinUrl: ''
+    github_url: '',
+    linkedin_url: ''
   });
 
   useEffect(() => {
@@ -38,8 +38,8 @@ const StudentProfilePage = () => {
         phone: response.profile.phone || '',
         cgpa: response.profile.cgpa || '',
         skills: response.profile.skills || [],
-        githubUrl: response.profile.githubUrl || '',
-        linkedinUrl: response.profile.linkedinUrl || ''
+        github_url: response.profile.github_url || '',
+        linkedin_url: response.profile.linkedin_url || ''
       });
     } catch (err) {
       setError(err.message || 'Failed to load profile');
@@ -179,7 +179,7 @@ const StudentProfilePage = () => {
                 className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-sky-500"
               />
               <h2 className="text-2xl font-bold mb-2">{profile?.name}</h2>
-              <p className="text-sky-400 mb-1">{profile?.rollNumber || profile?.student_id}</p>
+              <p className="text-sky-400 mb-1">{profile?.roll_number || profile?.student_id}</p>
               <p className="text-slate-400">{profile?.department}</p>
               <p className="text-sm text-slate-400 mt-2">{profile?.email}</p>
               
@@ -191,7 +191,7 @@ const StudentProfilePage = () => {
                 <div className="bg-slate-700 p-3 rounded-lg">
                   <p className="text-sm text-slate-400">Status</p>
                   <p className="text-sm font-semibold text-green-400">
-                    {profile?.isApproved ? 'Approved' : 'Pending Approval'}
+                    {profile?.is_approved ? 'Approved' : 'Pending Approval'}
                   </p>
                 </div>
               </div>
@@ -330,15 +330,15 @@ const StudentProfilePage = () => {
                   {isEditing ? (
                     <input
                       type="url"
-                      name="githubUrl"
-                      value={formData.githubUrl}
+                      name="github_url"
+                      value={formData.github_url}
                       onChange={handleChange}
                       placeholder="https://github.com/username"
                       className="w-full p-3 rounded-lg bg-slate-700 border border-slate-600 focus:border-sky-400 focus:outline-none"
                     />
                   ) : (
                     <p className="p-3 bg-slate-700 rounded-lg break-all">
-                      {profile?.githubUrl || 'Not provided'}
+                      {profile?.github_url || 'Not provided'}
                     </p>
                   )}
                 </div>
@@ -348,15 +348,15 @@ const StudentProfilePage = () => {
                   {isEditing ? (
                     <input
                       type="url"
-                      name="linkedinUrl"
-                      value={formData.linkedinUrl}
+                      name="linkedin_url"
+                      value={formData.linkedin_url}
                       onChange={handleChange}
                       placeholder="https://linkedin.com/in/username"
                       className="w-full p-3 rounded-lg bg-slate-700 border border-slate-600 focus:border-sky-400 focus:outline-none"
                     />
                   ) : (
                     <p className="p-3 bg-slate-700 rounded-lg break-all">
-                      {profile?.linkedinUrl || 'Not provided'}
+                      {profile?.linkedin_url || 'Not provided'}
                     </p>
                   )}
                 </div>
@@ -366,18 +366,18 @@ const StudentProfilePage = () => {
             {/* Resume */}
             <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
               <h3 className="text-xl font-bold mb-4">Resume</h3>
-              {profile?.resumeUrl ? (
+              {profile?.resume_url ? (
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-4xl">📄</span>
                     <div>
                       <p className="font-medium">Resume uploaded</p>
-                      <p className="text-sm text-slate-400">Last updated: {new Date(profile.resumeUploadedAt || Date.now()).toLocaleDateString()}</p>
+                      <p className="text-sm text-slate-400">Last updated: {new Date(profile.resume_uploaded_at || Date.now()).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <a
-                      href={profile.resumeUrl}
+                      href={profile.resume_url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-4 py-2 bg-sky-500 hover:bg-sky-600 rounded-lg transition duration-200"
