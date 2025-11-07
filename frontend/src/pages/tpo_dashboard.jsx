@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Edit, Trash2, X, Briefcase } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { Plus, Edit, Trash2, X, Briefcase, LogOut } from 'lucide-react';
 
 // --- Mock Data ---
 const MOCK_COMPANIES = [
@@ -165,12 +167,19 @@ const StatusBadge = ({ status }) => {
 
 // --- Main TPO Dashboard Component ---
 const App = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [companies, setCompanies] = useState(MOCK_COMPANIES);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
   const [currentCompany, setCurrentCompany] = useState(null);
 
   // --- Event Handlers ---
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   const handleOpenModal = (mode, company = null) => {
     setModalMode(mode);
@@ -216,19 +225,34 @@ const App = () => {
           <h1 className="text-4xl font-extrabold text-slate-100 tracking-tight">
             TPO Dashboard
           </h1>
-          <button
-            onClick={() => handleOpenModal('add')}
-            className="
-              flex items-center gap-2
-              px-5 py-2.5 rounded-lg font-semibold
-              bg-sky-500 text-white
-              hover:bg-sky-400 transition-all
-              shadow-xl hover:shadow-sky-500/40
-            "
-          >
-            <Plus size={18} />
-            Add New Company
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => handleOpenModal('add')}
+              className="
+                flex items-center gap-2
+                px-5 py-2.5 rounded-lg font-semibold
+                bg-sky-500 text-white
+                hover:bg-sky-400 transition-all
+                shadow-xl hover:shadow-sky-500/40
+              "
+            >
+              <Plus size={18} />
+              Add New Company
+            </button>
+            <button
+              onClick={handleLogout}
+              className="
+                flex items-center gap-2
+                px-5 py-2.5 rounded-lg font-semibold
+                bg-red-500 text-white
+                hover:bg-red-600 transition-all
+                shadow-xl hover:shadow-red-500/40
+              "
+            >
+              <LogOut size={18} />
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* --- Companies Table --- */}
