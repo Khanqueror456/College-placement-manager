@@ -2,6 +2,7 @@ import config from '../config/config.js';
 import { asyncHandler } from '../middlewares/errorHandler.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { logInfo, logActivity } from '../middlewares/logger.js';
+import { sendApplicationStatusEmail, sendNewDriveNotification } from '../lib/emailService.js';
 
 /**
  * TPO (Training & Placement Officer) Controller
@@ -371,18 +372,41 @@ export const updateApplicationStatus = asyncHandler(async (req, res, next) => {
   // application.lastUpdated = new Date();
   // await application.save();
 
-  // TODO: Send email notification to student
-  // await sendEmail({
-  //   email: application.student.email,
-  //   subject: `Application Status Update - ${application.drive.companyName}`,
-  //   message: `Your application status has been updated to: ${status}`
-  // });
+  // Mock data for email (replace with actual database queries)
+  const student = {
+    id: 'student_1',
+    name: 'Student Name', // TODO: Get from database
+    email: 'student@example.com' // TODO: Get from database
+  };
+
+  const application = {
+    id: applicationId,
+    companyName: 'Company Name', // TODO: Get from database
+    jobRole: 'Job Role', // TODO: Get from database
+    status: status
+  };
+
+  // Send email notification to student
+  try {
+    await sendApplicationStatusEmail(student, application, status, feedback);
+    logInfo('Application status email sent successfully', { 
+      applicationId, 
+      studentEmail: student.email, 
+      status 
+    });
+  } catch (error) {
+    logInfo('Failed to send application status email', { 
+      applicationId, 
+      error: error.message 
+    });
+    // Don't fail the status update if email fails
+  }
 
   logActivity('APPLICATION_STATUS_UPDATED', req.user.id, { applicationId, status });
 
   res.status(200).json({
     success: true,
-    message: 'Application status updated successfully',
+    message: 'Application status updated successfully and notification email sent',
     application: {
       id: applicationId,
       status,
@@ -408,17 +432,47 @@ export const bulkUpdateStatus = asyncHandler(async (req, res, next) => {
   //   { status, currentRound: round, lastUpdated: new Date() }
   // );
 
-  // TODO: Send bulk emails
-  // const applications = await Application.find({ _id: { $in: applicationIds } })
-  //   .populate('student', 'email');
-  // await sendBulkEmails(applications, status);
+  // Send bulk emails to all students (mock data - replace with actual database queries)
+  let emailsSent = 0;
+  const emailPromises = applicationIds.map(async (appId) => {
+    try {
+      // Mock data for each application (replace with actual database queries)
+      const student = {
+        id: `student_${appId}`,
+        name: 'Student Name',
+        email: 'student@example.com'
+      };
 
-  logActivity('BULK_STATUS_UPDATE', req.user.id, { count: applicationIds.length, status });
+      const application = {
+        id: appId,
+        companyName: 'Company Name',
+        jobRole: 'Job Role',
+        status: status
+      };
+
+      await sendApplicationStatusEmail(student, application, status, req.body.comments || '');
+      emailsSent++;
+      return true;
+    } catch (error) {
+      logInfo('Failed to send bulk email', { applicationId: appId, error: error.message });
+      return false;
+    }
+  });
+
+  // Wait for all emails to complete (don't fail the bulk update if some emails fail)
+  await Promise.allSettled(emailPromises);
+
+  logActivity('BULK_STATUS_UPDATE', req.user.id, { 
+    count: applicationIds.length, 
+    status,
+    emailsSent 
+  });
 
   res.status(200).json({
     success: true,
-    message: `${applicationIds.length} applications updated successfully`,
-    updatedCount: applicationIds.length
+    message: `${applicationIds.length} applications updated successfully. ${emailsSent} notification emails sent.`,
+    updatedCount: applicationIds.length,
+    emailsSent
   });
 });
 

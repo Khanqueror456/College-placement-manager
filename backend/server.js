@@ -83,6 +83,8 @@ import studentRoutes from './routes/studentRoutes.js';
 import driveRoutes from './routes/driveRoutes.js';
 import hodRoutes from './routes/hodRoutes.js';
 import tpoRoutes from './routes/tpoRoutes.js';
+import emailTestRoutes from './routes/emailTestRoutes.js';
+import oauthRoutes from './routes/oauthRoutes.js';
 
 // Mount routes
 app.use('/api/auth', authRoutes);
@@ -90,6 +92,8 @@ app.use('/api/student', studentRoutes);
 app.use('/api/drives', driveRoutes);
 app.use('/api/hod', hodRoutes);
 app.use('/api/tpo', tpoRoutes);
+app.use('/api/test/email', emailTestRoutes);
+app.use('/auth', oauthRoutes);
 
 // 404 Handler
 app.use(notFound);
