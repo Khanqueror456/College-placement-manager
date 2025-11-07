@@ -9,19 +9,14 @@ import EditStudentProfile from './pages/EditStudentProfile';
 import StudentDrives from './pages/StudentDrives';
 import StudentDriveStatus from './pages/StudentDriveStatus';
 import { Routes, Route, Link } from 'react-router-dom';
+import HomePage from './pages/homepage';
 
 function App() {
   const [count, setCount] = useState(0)
 
   return (
     <>
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/hod-dashboard" element={<HodDashboard />} />
-        
-        {/* This is the "catch-all" route for 404s */}
-        {/* <Route path="*" element={<NotFound />} /> */}
-      </Routes>
+      <StudentDriveStatus />
         
     </>
   )
