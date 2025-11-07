@@ -25,7 +25,7 @@ const User = sequelize.define(
       allowNull: true,
     },
     role: {
-      type: DataTypes.ENUM('STUDENT', 'ADMIN', 'HOD', 'TPO'),
+      type: DataTypes.ENUM('STUDENT', 'HOD', 'TPO'),  // Removed ADMIN - TPO acts as admin
       allowNull: false,
     },
     department: {
