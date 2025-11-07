@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -17,7 +17,10 @@ import {
   TrendingUp,
   CheckCircle,
   Clock,
+  Download
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // --- Register Chart.js components ---
 ChartJS.register(
@@ -67,7 +70,6 @@ const StatCard = ({ title, value, icon, colorClass }) => {
     yellow: { main: '#facc15', light: '#fde047' },
     red: { main: '#ef4444', light: '#f87171' },
   };
-
   const colors = colorMap[colorClass] || colorMap.emerald;
 
   return (
@@ -110,6 +112,34 @@ const StatCard = ({ title, value, icon, colorClass }) => {
 // --- Main Statistics Component ---
 const HodStatistics = () => {
   const stats = MOCK_DATA.statistics;
+  const reportRef = useRef(); // 👈 reference for capturing the content
+
+  // --- PDF Download Handler ---
+  const handleDownloadPDF = async () => {
+    const input = reportRef.current;
+    const canvas = await html2canvas(input, { scale: 2, backgroundColor: '#0f172a' });
+    const imgData = canvas.toDataURL('image/png');
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgWidth = 190; // fits within A4 width with margin
+    const pageHeight = 297;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 10;
+
+    pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    // For multi-page content
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    pdf.save(`${MOCK_DATA.department}_Statistics_Report.pdf`);
+  };
 
   // --- Chart.js Options (Dark Theme) ---
   const globalChartOptions = {
@@ -118,10 +148,7 @@ const HodStatistics = () => {
     plugins: {
       legend: {
         position: 'bottom',
-        labels: {
-          color: '#e2e8f0',
-          font: { size: 14 },
-        },
+        labels: { color: '#e2e8f0', font: { size: 14 } },
       },
       title: {
         display: true,
@@ -136,49 +163,32 @@ const HodStatistics = () => {
       },
     },
     scales: {
-      x: {
-        ticks: { color: '#94a3b8' },
-        grid: { color: '#475569' },
-      },
-      y: {
-        ticks: { color: '#94a3b8' },
-        grid: { color: '#475569' },
-      },
+      x: { ticks: { color: '#94a3b8' }, grid: { color: '#475569' } },
+      y: { ticks: { color: '#94a3b8' }, grid: { color: '#475569' } },
     },
   };
 
-  // --- Doughnut Chart Data ---
   const doughnutData = {
     labels: Object.keys(stats.packageDistribution),
     datasets: [
       {
         label: '# of Students',
         data: Object.values(stats.packageDistribution),
-        backgroundColor: [
-          '#38bdf8', // Accent: Sky Blue
-          '#10b981', // Secondary: Emerald
-          '#facc15', // Yellow
-          '#ef4444', // Red
-        ],
-        borderColor: '#0f172a', // Background: Dark Slate
+        backgroundColor: ['#38bdf8', '#10b981', '#facc15', '#ef4444'],
+        borderColor: '#0f172a',
         borderWidth: 4,
       },
     ],
   };
-
   const doughnutOptions = {
     ...globalChartOptions,
     plugins: {
       ...globalChartOptions.plugins,
-      title: {
-        ...globalChartOptions.plugins.title,
-        text: 'Package Distribution',
-      },
+      title: { ...globalChartOptions.plugins.title, text: 'Package Distribution' },
     },
     scales: { x: { display: false }, y: { display: false } },
   };
 
-  // --- Bar Chart Data ---
   const barData = {
     labels: stats.topCompanies.map((c) => c.name),
     datasets: [
@@ -191,7 +201,6 @@ const HodStatistics = () => {
       },
     ],
   };
-
   const barOptions = {
     ...globalChartOptions,
     indexAxis: 'y',
@@ -205,11 +214,7 @@ const HodStatistics = () => {
     },
     scales: {
       x: { ...globalChartOptions.scales.x },
-      y: {
-        ...globalChartOptions.scales.y,
-        ticks: { color: '#e2e8f0' },
-        grid: { color: 'transparent' },
-      },
+      y: { ...globalChartOptions.scales.y, ticks: { color: '#e2e8f0' }, grid: { color: 'transparent' } },
     },
   };
 
@@ -217,77 +222,47 @@ const HodStatistics = () => {
     <div
       className="p-8 w-full min-h-screen"
       style={{ backgroundColor: '#0f172a', color: '#e2e8f0' }}
+      ref={reportRef} // 👈 capture this section
     >
-      <h1
-        className="text-3xl font-extrabold mb-8"
-        style={{ color: '#e2e8f0' }}
-      >
-        {MOCK_DATA.department} Department Statistics
-      </h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-extrabold mb-8" style={{ color: '#e2e8f0' }}>
+          {MOCK_DATA.department} Department Statistics
+        </h1>
 
-      {/* --- KPI Cards --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-        <StatCard
-          title="Placement Percentage"
-          value={`${stats.placementPercentage}%`}
-          icon={Target}
-          colorClass="emerald"
-        />
-        <StatCard
-          title="Highest Package"
-          value={stats.highestPackage}
-          icon={TrendingUp}
-          colorClass="sky"
-        />
-        <StatCard
-          title="Average Package"
-          value={stats.averagePackage}
-          icon={DollarSign}
-          colorClass="yellow"
-        />
-        <StatCard
-          title="Placed Students"
-          value={`${stats.placedStudents} / ${stats.registeredStudents}`}
-          icon={Users}
-          colorClass="emerald"
-        />
-        <StatCard
-          title="Total Offers"
-          value={stats.totalOffers}
-          icon={CheckCircle}
-          colorClass="sky"
-        />
-        <StatCard
-          title="Pending Approvals"
-          value={stats.pendingApprovals}
-          icon={Clock}
-          colorClass="red"
-        />
+        <button
+          className="flex items-center justify-center px-5 py-2 rounded-lg font-semibold transition-all duration-300"
+          style={{
+            backgroundColor: '#10b981',
+            color: '#0f172a',
+          }}
+          onClick={handleDownloadPDF}
+          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#34d399')}
+          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#10b981')}
+        >
+          <Download className="w-5 h-5 mr-2" />
+          Download Report
+        </button>
       </div>
 
-      {/* --- Charts --- */}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <StatCard title="Placement Percentage" value={`${stats.placementPercentage}%`} icon={Target} colorClass="emerald" />
+        <StatCard title="Highest Package" value={stats.highestPackage} icon={TrendingUp} colorClass="sky" />
+        <StatCard title="Average Package" value={stats.averagePackage} icon={DollarSign} colorClass="yellow" />
+        <StatCard title="Placed Students" value={`${stats.placedStudents} / ${stats.registeredStudents}`} icon={Users} colorClass="emerald" />
+        <StatCard title="Total Offers" value={stats.totalOffers} icon={CheckCircle} colorClass="sky" />
+        <StatCard title="Pending Approvals" value={stats.pendingApprovals} icon={Clock} colorClass="red" />
+      </div>
+
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* Doughnut Chart */}
-        <div
-          className="lg:col-span-2 p-6 rounded-2xl shadow-lg border"
-          style={{
-            backgroundColor: '#1e293b',
-            borderColor: '#475569',
-          }}
-        >
+        <div className="lg:col-span-2 p-6 rounded-2xl shadow-lg border" style={{ backgroundColor: '#1e293b', borderColor: '#475569' }}>
           <div className="h-96 w-full">
             <Doughnut data={doughnutData} options={doughnutOptions} />
           </div>
         </div>
 
-        {/* Bar Chart */}
-        <div
-          className="lg:col-span-3 p-6 rounded-2xl shadow-lg border"
-          style={{
-            backgroundColor: '#1e293b',
-            borderColor: '#475569',
-          }}
-        >
+        <div className="lg:col-span-3 p-6 rounded-2xl shadow-lg border" style={{ backgroundColor: '#1e293b', borderColor: '#475569' }}>
           <div className="h-96 w-full">
             <Bar data={barData} options={barOptions} />
           </div>

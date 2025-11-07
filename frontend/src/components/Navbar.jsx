@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 // --- Glass Navbar Component ---
-const Navbar = ({ onLogin, onSignup }) => {
+const Navbar = ({ onLogin, onSignup, className = ""  }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navLinks = [
@@ -23,14 +23,14 @@ const Navbar = ({ onLogin, onSignup }) => {
   ];
 
   return (
-    <nav className="
+    <nav className={`
       sticky top-4 left-4 right-4 z-50
       max-w-6xl mx-auto
       bg-slate-800/20 backdrop-filter backdrop-blur-lg
       border border-slate-500/30
       rounded-2xl shadow-lg
-      py-3 px-6
-    ">
+      py-3 px-6 ${className}
+    `}>
       <div className="flex items-center justify-between">
         {/* Logo/Brand Name */}
         <a href="/" className="text-2xl font-bold text-sky-400">

@@ -1,4 +1,6 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
+import { DEFAULT_AVATAR } from '../assets/defaults';
 
 // --- Placeholder for Student Data ---
 const MOCK_STUDENT_PROFILE = {
@@ -61,7 +63,7 @@ const StudentProfile = ({ profile = MOCK_STUDENT_PROFILE, onLogout }) => {
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-900 text-slate-200">
-      
+
       {/* --- Header Bar --- */}
       <header className="
         w-full p-4
@@ -71,51 +73,74 @@ const StudentProfile = ({ profile = MOCK_STUDENT_PROFILE, onLogout }) => {
         z-10 // Ensure header is on top
       ">
         <h1 className="text-2xl font-bold text-slate-100">Student Profile</h1>
-        <button
-          onClick={onLogout}
-          className="
+        <div className="buttons flex justify-between items-center gap-4">
+          <Link to="/student-dashboard">
+            <button
+              className="
             flex items-center px-4 py-2 rounded-lg font-semibold
             bg-slate-700 hover:bg-slate-600
             border border-slate-500 hover:border-sky-400
             text-slate-200 hover:text-sky-400
             transition-all duration-300
           "
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mr-2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-          </svg>
-          Logout
-        </button>
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mr-2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+              </svg>
+              Dashboard
+            </button>
+          </Link>
+          <button
+            onClick={onLogout}
+            className="
+            flex items-center px-4 py-2 rounded-lg font-semibold
+            bg-slate-700 hover:bg-slate-600
+            border border-slate-500 hover:border-sky-400
+            text-slate-200 hover:text-sky-400
+            transition-all duration-300
+          "
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mr-2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+            </svg>
+            Logout
+          </button>
+        </div>
       </header>
 
       {/* --- Main Content Area --- */}
       <main className="flex-grow p-8">
         <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* --- Profile Card (Left/Top Section) --- */}
           <div className="
             lg:col-span-1 p-6 rounded-2xl flex flex-col items-center text-center
             bg-slate-700 bg-opacity-25 backdrop-filter backdrop-blur-lg
             border border-slate-500 border-opacity-30 shadow-lg
           ">
-            <img 
-              src={profile.profilePhoto} 
-              alt={`${profile.name}'s profile`} 
+            <img
+              src={profile.profilePhoto || DEFAULT_AVATAR}
+              alt={`${profile.name}'s profile`}
               className="w-32 h-32 rounded-full object-cover border-4 border-sky-500 mb-4 shadow-md"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = DEFAULT_AVATAR;
+              }}
             />
+
             <h2 className="text-3xl font-bold text-slate-100 mb-2">{profile.name}</h2>
             <p className="text-sky-400 mb-6">{profile.usn}</p>
 
             <div className="text-left w-full space-y-2 text-slate-300">
-                <p className="flex items-center"><BookOpenIcon /> {profile.branch}</p>
-                <p className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-2"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3V12m-3-2.25L12 21m-4.5-10.5L12 21M21 3v.25M21 12v.25" /></svg> {profile.year}, {profile.semester}</p>
-                <p className="flex items-center text-sky-300"><MailIcon /> {profile.email}</p>
+              <p className="flex items-center"><BookOpenIcon /> {profile.branch}</p>
+              <p className="flex items-center"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-2"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3V12m-3-2.25L12 21m-4.5-10.5L12 21M21 3v.25M21 12v.25" /></svg> {profile.year}, {profile.semester}</p>
+              <p className="flex items-center text-sky-300"><MailIcon /> {profile.email}</p>
             </div>
           </div>
 
           {/* --- Details Sections (Right/Bottom Section) --- */}
           <div className="lg:col-span-2 space-y-8">
-            
+
             {/* Skills Section */}
             <section className="
               p-6 rounded-2xl
@@ -125,8 +150,8 @@ const StudentProfile = ({ profile = MOCK_STUDENT_PROFILE, onLogout }) => {
               <h3 className="flex items-center text-2xl font-bold text-slate-100 mb-4"><CodeIcon /> Skills</h3>
               <div className="flex flex-wrap gap-2">
                 {profile.skills.map((skill, index) => (
-                  <span 
-                    key={index} 
+                  <span
+                    key={index}
                     className="
                       px-4 py-2 rounded-full text-sm font-semibold 
                       bg-emerald-500/20 text-emerald-300

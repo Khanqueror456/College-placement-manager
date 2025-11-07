@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-
+import { Link } from 'react-router-dom';
 // --- SVG Icons ---
 const LogoutIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mr-2">
@@ -43,7 +43,7 @@ const HodDashboard = ({ onLogout }) => {
 
   return (
     <div className="flex flex-col min-h-screen w-full bg-slate-900 text-slate-200">
-      
+
       {/* --- Header Bar --- */}
       <header className="
         w-full p-4
@@ -52,25 +52,46 @@ const HodDashboard = ({ onLogout }) => {
         border-b border-slate-500 border-opacity-30
       ">
         <h1 className="text-2xl font-bold text-slate-100">HOD Dashboard</h1>
-        <button
-          onClick={onLogout}
-          className="
+        <div className="buttons flex justify-center items-center gap-4">
+
+          <Link to="/hod-stats">
+            <button
+              onClick={onLogout}
+              className="
             flex items-center px-4 py-2 rounded-lg font-semibold
             bg-slate-700 hover:bg-slate-600
             border border-slate-500 hover:border-sky-400
             text-slate-200 hover:text-sky-400
             transition-all duration-300
           "
-        >
-          <LogoutIcon />
-          Logout
-        </button>
+            >
+              <LogoutIcon />
+              Stats
+            </button>
+          </Link>
+
+          <button
+            onClick={onLogout}
+            className="
+            flex items-center px-4 py-2 rounded-lg font-semibold
+            bg-slate-700 hover:bg-slate-600
+            border border-slate-500 hover:border-sky-400
+            text-slate-200 hover:text-sky-400
+            transition-all duration-300
+          "
+          >
+            <LogoutIcon />
+            Logout
+          </button>
+
+
+        </div>
       </header>
 
       {/* --- Main Content Area --- */}
       <main className="flex-grow p-8">
         <div className="max-w-6xl mx-auto">
-          
+
           {/* --- Pending Approvals Section --- */}
           <section className="mb-12">
             <h2 className="text-3xl font-extrabold text-slate-100 mb-6">
@@ -82,15 +103,15 @@ const HodDashboard = ({ onLogout }) => {
                 {pendingStudents.length}
               </span>
             </h2>
-            
+
             {pendingStudents.length === 0 ? (
               <p className="text-slate-400">No pending student signups.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {pendingStudents.map(student => (
-                  <StudentCard 
-                    key={student.id} 
-                    student={student} 
+                  <StudentCard
+                    key={student.id}
+                    student={student}
                     onApprove={() => handleUpdateStatus(student.id, 'approved')}
                     onDeny={() => handleUpdateStatus(student.id, 'denied')}
                   />
@@ -147,7 +168,7 @@ const StudentCard = ({ student, onApprove, onDeny }) => {
         <p className="text-sm text-sky-300">{student.email}</p>
       </div>
       <div className="flex gap-4">
-        <button 
+        <button
           onClick={onApprove}
           className="
             flex-1 flex items-center justify-center px-4 py-2 rounded-lg font-semibold
@@ -158,7 +179,7 @@ const StudentCard = ({ student, onApprove, onDeny }) => {
           <CheckIcon />
           Approve
         </button>
-        <button 
+        <button
           onClick={onDeny}
           className="
             flex-1 flex items-center justify-center px-4 py-2 rounded-lg font-semibold
