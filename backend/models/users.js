@@ -25,7 +25,7 @@ const User = sequelize.define(
       allowNull: true,
     },
     role: {
-      type: DataTypes.ENUM('STUDENT', 'ADMIN', 'HOD'),
+      type: DataTypes.ENUM('STUDENT', 'ADMIN', 'HOD', 'TPO'),
       allowNull: false,
     },
     department: {
@@ -45,6 +45,28 @@ const User = sequelize.define(
     },
     cgpa: {
       type: DataTypes.DECIMAL(3, 2),
+      allowNull: true,
+    },
+    
+    // Resume and ATS Score fields
+    resume_path: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    ats_score: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      validate: {
+        min: 0,
+        max: 100
+      }
+    },
+    ats_analysis: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
+    last_resume_update: {
+      type: DataTypes.DATE,
       allowNull: true,
     },
     

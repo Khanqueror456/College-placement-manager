@@ -4,54 +4,51 @@ import config from '../config/config.js';
 import { asyncHandler } from '../middlewares/errorHandler.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { logInfo, logError, logActivity } from '../middlewares/logger.js';
+import User from '../models/users.js';
 
 /**
  * Authentication Controller
  * Handles user registration, login, and token management
  */
 
-// Temporary in-memory user storage (REMOVE when database is connected)
+// Temporary in-memory user storage (DEPRECATED - now using database)
 const tempUsers = new Map();
 
 // @desc    Register new user
 // @route   POST /api/auth/register
 // @access  Public
 export const register = asyncHandler(async (req, res, next) => {
-  const { name, email, password, role, department, phone, rollNumber } = req.body;
+  const { name, email, password, role, department, phone, rollNumber, student_id, batch_year, cgpa } = req.body;
 
-  // Check if user already exists (in-memory check)
-  if (tempUsers.has(email)) {
+  // Check if user already exists in database
+  const existingUser = await User.findOne({ where: { email } });
+  if (existingUser) {
     throw new AppError('User with this email already exists', 400);
   }
-  // if (existingUser) {
-  //   throw new AppError('User with this email already exists', 400);
-  // }
 
   // Hash password
   const salt = await bcryptjs.genSalt(10);
   const hashedPassword = await bcryptjs.hash(password, salt);
 
-  // Create user object (store in memory for now)
-  const user = {
-    _id: `user_${Date.now()}`,
+  // Create user in database
+  const user = await User.create({
     name,
     email,
     password: hashedPassword,
-    role: role || 'student',
+    role: (role || 'student').toUpperCase(),  // Store uppercase to match database ENUM
     department,
     phone,
-    rollNumber,
-    isApproved: role === 'student' ? false : true,
-    isEmailVerified: false
-  };
-
-  // Store user in memory
-  tempUsers.set(email, user);
+    student_id: student_id || rollNumber,
+    batch_year,
+    cgpa,
+    is_active: true,
+    profile_status: role === 'student' ? 'PENDING' : 'APPROVED'
+  });
 
   // Generate JWT token
   const token = jwt.sign(
     { 
-      id: user._id, 
+      id: user.id,  // Use database integer ID
       role: user.role,
       email: user.email,
       department: user.department
@@ -61,7 +58,7 @@ export const register = asyncHandler(async (req, res, next) => {
   );
 
   // Log activity
-  logActivity('USER_REGISTERED', user._id, { email, role });
+  logActivity('USER_REGISTERED', user.id, { email, role });
 
   res.status(201).json({
     success: true,
@@ -70,12 +67,12 @@ export const register = asyncHandler(async (req, res, next) => {
       : 'Registration successful!',
     token,
     user: {
-      id: user._id,
+      id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
       department: user.department,
-      isApproved: user.isApproved
+      isApproved: user.profile_status === 'APPROVED'
     }
   });
 });
@@ -86,8 +83,8 @@ export const register = asyncHandler(async (req, res, next) => {
 export const login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
 
-  // Get user from memory storage
-  const user = tempUsers.get(email);
+  // Get user from database
+  const user = await User.findOne({ where: { email } });
   
   if (!user) {
     throw new AppError('Invalid email or password', 401);
@@ -104,7 +101,7 @@ export const login = asyncHandler(async (req, res, next) => {
   // Generate JWT token
   const token = jwt.sign(
     { 
-      id: user._id, 
+      id: user.id,  // Use database integer ID
       role: user.role,
       email: user.email,
       department: user.department
@@ -114,19 +111,19 @@ export const login = asyncHandler(async (req, res, next) => {
   );
 
   // Log activity
-  logActivity('USER_LOGIN', user._id, { email, role: user.role });
+  logActivity('USER_LOGIN', user.id, { email, role: user.role });
 
   res.status(200).json({
     success: true,
     message: 'Login successful',
     token,
     user: {
-      id: user._id,
+      id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
       department: user.department,
-      isApproved: user.isApproved
+      isApproved: user.profile_status === 'APPROVED'
     }
   });
 });
