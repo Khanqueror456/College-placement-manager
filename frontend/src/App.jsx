@@ -1,6 +1,3 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 import Login from './pages/login';
 import StudentProfile from './pages/student_profile';
@@ -16,6 +13,7 @@ import HodDashboard from './pages/hod_dashboard';
 import HodStatistics from './components/hod_stats';
 import HodPlacementReport from "./components/hod_reports"
 import StudentOverview from "./components/student_dashboard"
+import ApiTest from './pages/ApiTest';
 
 function App() {
 
@@ -26,15 +24,22 @@ function App() {
         <Route path="/about" element={<AboutPage/>} />
         <Route path="/contact" element={<ContactPage/>} />
         <Route path="/login" element={<Login/>}/>
-        <Route path="/hod-dashboard" element={<HodDashboard/>}/>
-        <Route path="/hod-stats" element={<HodStatistics/>}/>
-        <Route path="/hod-report" element={<HodPlacementReport/>}/>
-        <Route path="/student-profile" element={<StudentProfile/>}/>
-        <Route path="/student-dashboard" element={<StudentOverview/>}/>
+        <Route path="/api-test" element={<ApiTest/>}/>
         
+        {/* HOD Routes */}
+  
+        <Route path="/hod/dashboard" element={<HodDashboard/>}/>
+        <Route path="/hod/stats" element={<HodStatistics/>}/>
+        <Route path="/hod/report" element={<HodPlacementReport/>}/>
+
+        {/* Student Routes */}
+        <Route path="/student/dashboard" element={<StudentOverview/>}/>
+        <Route path="/student/profile" element={<StudentProfile/>}/>
+        <Route path="/student/drives" element={<StudentDrives/>}/>
+        <Route path="/student/status" element={<StudentDriveStatus/>}/>
         
-       {/* This is the "catch-all" route for 404s */}
-       <Route path="*" element={<NotFound />} />
+        {/* This is the "catch-all" route for 404s */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
         
     </>
