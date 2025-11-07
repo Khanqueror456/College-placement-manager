@@ -403,7 +403,7 @@ router.get('/list/:folder', authenticate, async (req, res) => {
     
     // Check permissions (case-insensitive)
     const userRole = req.user.role?.toLowerCase();
-    if (folder === 'resumes' && !['student', 'tpo', 'hod', 'admin'].includes(userRole)) {
+    if (folder === 'resumes' && !['student', 'tpo', 'hod'].includes(userRole)) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'

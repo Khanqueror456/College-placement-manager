@@ -319,8 +319,7 @@ function printQuickReference() {
   console.log(`\n${colors.bold}👥 User Roles:${colors.reset}`);
   console.log(`   ${colors.blue}STUDENT${colors.reset}  - Can view drives, apply, upload resume`);
   console.log(`   ${colors.yellow}HOD${colors.reset}      - Can approve students, view department stats`);
-  console.log(`   ${colors.magenta}TPO${colors.reset}      - Can manage drives, companies, applications`);
-  console.log(`   ${colors.red}ADMIN${colors.reset}    - Full system access`);
+  console.log(`   ${colors.magenta}TPO${colors.reset}      - Can manage drives, companies, applications (Admin access)`);
 
   console.log(`\n${colors.bold}📤 File Upload Endpoints:${colors.reset}`);
   console.log(`   Resume: POST /api/upload/resume (with ATS scoring)`);
