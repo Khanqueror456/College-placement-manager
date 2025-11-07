@@ -12,10 +12,12 @@ import HodDashboard from './pages/hod_dashboard';
 import HodStatistics from './components/hod_stats';
 import HodPlacementReport from "./components/hod_reports"
 import StudentOverview from "./components/student_dashboard"
-import EditStudentProfile from "./pages/EditStudentProfile.jsx"
-import TpoOverview from './pages/tpo_overview.jsx';
-import TpoDriveStats from "./components/drive_stats.jsx"
 import TpoDashboard from './pages/tpo_dashboard.jsx';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from "./components/ProtectedRoute.jsx"
+import StudentDashboard from "./pages/StudentDashboard.jsx"
+import ViewDrives from "./pages/ViewDrives.jsx"
+import MyApplications from "./pages/MyApplications.jsx"
 
 function App() {
 
@@ -26,7 +28,6 @@ function App() {
         <Route path="/about" element={<AboutPage/>} />
         <Route path="/contact" element={<ContactPage/>} />
         <Route path="/login" element={<Login/>}/>
-        <Route path="/api-test" element={<ApiTest/>}/>
         
         {/* TPO Protected Routes */}
         <Route 
@@ -100,7 +101,7 @@ function App() {
         
         {/* Old Student Routes (keeping for backward compatibility) */}
         <Route path="/student/dashboard" element={<StudentOverview/>}/>
-        <Route path="/student/profile" element={<StudentProfileOld/>}/>
+        <Route path="/student/profile" element={<StudentProfile/>}/>
         <Route path="/student/drives" element={<StudentDrives/>}/>
         <Route path="/student/status" element={<StudentDriveStatus/>}/>
         
