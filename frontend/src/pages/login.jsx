@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 // --- SVG Icon for Back Button ---
 const BackArrowIcon = () => (
@@ -64,9 +65,11 @@ const RoleSelectionScreen = ({ onSelectRole }) => {
 
 // --- 3. Login Screen (UPDATED) ---
 // This component now manages "Login" vs "Sign Up" state
-const LoginScreen = ({ role, onBack }) => {
+const LoginScreen = ({ role, onBack}) => {
   // 'login' or 'signup'
-  const [authMode, setAuthMode] = useState('login');
+  const location = useLocation();
+  const initialMode = location.state?.mode || "login"
+  const [authMode, setAuthMode] = useState(initialMode);
   const isLoginMode = authMode === 'login';
 
   const activeTabClasses = "bg-sky-500 text-white";
