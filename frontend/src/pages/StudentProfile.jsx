@@ -19,9 +19,8 @@ const StudentProfilePage = () => {
     name: '',
     phone: '',
     cgpa: '',
-    skills: [],
-    github_url: '',
-    linkedin_url: ''
+    student_id: '',
+    batch_year: ''
   });
 
   useEffect(() => {
@@ -32,14 +31,21 @@ const StudentProfilePage = () => {
     try {
       setLoading(true);
       const response = await studentService.getProfile();
+      console.log('📝 Fetched profile:', response.profile);
       setProfile(response.profile);
       setFormData({
         name: response.profile.name || '',
         phone: response.profile.phone || '',
         cgpa: response.profile.cgpa || '',
-        skills: response.profile.skills || [],
-        github_url: response.profile.github_url || '',
-        linkedin_url: response.profile.linkedin_url || ''
+        student_id: response.profile.student_id || '',
+        batch_year: response.profile.batch_year || ''
+      });
+      console.log('✅ Form data set:', {
+        name: response.profile.name,
+        phone: response.profile.phone,
+        cgpa: response.profile.cgpa,
+        student_id: response.profile.student_id,
+        batch_year: response.profile.batch_year
       });
     } catch (err) {
       setError(err.message || 'Failed to load profile');
@@ -52,14 +58,6 @@ const StudentProfilePage = () => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSkillsChange = (e) => {
-    const skills = e.target.value.split(',').map(skill => skill.trim());
-    setFormData({
-      ...formData,
-      skills
     });
   };
 
@@ -179,7 +177,7 @@ const StudentProfilePage = () => {
                 className="w-32 h-32 rounded-full mx-auto mb-4 border-4 border-sky-500"
               />
               <h2 className="text-2xl font-bold mb-2">{profile?.name}</h2>
-              <p className="text-sky-400 mb-1">{profile?.roll_number || profile?.student_id}</p>
+              <p className="text-sky-400 mb-1">{profile?.student_id || 'No ID'}</p>
               <p className="text-slate-400">{profile?.department}</p>
               <p className="text-sm text-slate-400 mt-2">{profile?.email}</p>
               
@@ -235,6 +233,17 @@ const StudentProfilePage = () => {
             {/* Personal Information */}
             <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
               <h3 className="text-xl font-bold mb-4">Personal Information</h3>
+              
+              {/* DEBUG - Remove this after fixing */}
+              <div className="mb-4 p-3 bg-red-900 bg-opacity-20 rounded text-xs">
+                <strong>DEBUG:</strong> {JSON.stringify({
+                  phone: profile?.phone,
+                  student_id: profile?.student_id,
+                  batch_year: profile?.batch_year,
+                  cgpa: profile?.cgpa
+                })}
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-400 mb-2">Name</label>
@@ -267,6 +276,37 @@ const StudentProfilePage = () => {
                 </div>
 
                 <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-2">Student ID</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      name="student_id"
+                      value={formData.student_id}
+                      onChange={handleChange}
+                      className="w-full p-3 rounded-lg bg-slate-700 border border-slate-600 focus:border-sky-400 focus:outline-none"
+                    />
+                  ) : (
+                    <p className="p-3 bg-slate-700 rounded-lg">{profile?.student_id || 'Not provided'}</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-400 mb-2">Batch Year</label>
+                  {isEditing ? (
+                    <input
+                      type="number"
+                      name="batch_year"
+                      value={formData.batch_year}
+                      onChange={handleChange}
+                      placeholder="e.g., 2024"
+                      className="w-full p-3 rounded-lg bg-slate-700 border border-slate-600 focus:border-sky-400 focus:outline-none"
+                    />
+                  ) : (
+                    <p className="p-3 bg-slate-700 rounded-lg">{profile?.batch_year || 'Not provided'}</p>
+                  )}
+                </div>
+
+                <div>
                   <label className="block text-sm font-medium text-slate-400 mb-2">CGPA</label>
                   {isEditing ? (
                     <input
@@ -279,85 +319,6 @@ const StudentProfilePage = () => {
                     />
                   ) : (
                     <p className="p-3 bg-slate-700 rounded-lg">{profile?.cgpa || 'Not provided'}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">Backlogs</label>
-                  <p className="p-3 bg-slate-700 rounded-lg">{profile?.backlogs || 0}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Skills */}
-            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-              <h3 className="text-xl font-bold mb-4">Skills</h3>
-              {isEditing ? (
-                <div>
-                  <input
-                    type="text"
-                    value={formData.skills.join(', ')}
-                    onChange={handleSkillsChange}
-                    placeholder="e.g., JavaScript, React, Node.js"
-                    className="w-full p-3 rounded-lg bg-slate-700 border border-slate-600 focus:border-sky-400 focus:outline-none"
-                  />
-                  <p className="text-xs text-slate-400 mt-2">Separate skills with commas</p>
-                </div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {profile?.skills && profile.skills.length > 0 ? (
-                    profile.skills.map((skill, index) => (
-                      <span
-                        key={index}
-                        className="px-3 py-1 bg-sky-500 bg-opacity-20 border border-sky-500 rounded-full text-sm"
-                      >
-                        {skill}
-                      </span>
-                    ))
-                  ) : (
-                    <p className="text-slate-400">No skills added yet</p>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Links */}
-            <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
-              <h3 className="text-xl font-bold mb-4">Links</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">GitHub URL</label>
-                  {isEditing ? (
-                    <input
-                      type="url"
-                      name="github_url"
-                      value={formData.github_url}
-                      onChange={handleChange}
-                      placeholder="https://github.com/username"
-                      className="w-full p-3 rounded-lg bg-slate-700 border border-slate-600 focus:border-sky-400 focus:outline-none"
-                    />
-                  ) : (
-                    <p className="p-3 bg-slate-700 rounded-lg break-all">
-                      {profile?.github_url || 'Not provided'}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-400 mb-2">LinkedIn URL</label>
-                  {isEditing ? (
-                    <input
-                      type="url"
-                      name="linkedin_url"
-                      value={formData.linkedin_url}
-                      onChange={handleChange}
-                      placeholder="https://linkedin.com/in/username"
-                      className="w-full p-3 rounded-lg bg-slate-700 border border-slate-600 focus:border-sky-400 focus:outline-none"
-                    />
-                  ) : (
-                    <p className="p-3 bg-slate-700 rounded-lg break-all">
-                      {profile?.linkedin_url || 'Not provided'}
-                    </p>
                   )}
                 </div>
               </div>

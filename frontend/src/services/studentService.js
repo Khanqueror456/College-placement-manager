@@ -13,7 +13,7 @@ const studentService = {
    */
   getProfile: async () => {
     const response = await api.get('/student/profile');
-    return response;
+    return response.data;
   },
 
   /**
@@ -21,7 +21,7 @@ const studentService = {
    */
   updateProfile: async (profileData) => {
     const response = await api.put('/student/profile', profileData);
-    return response;
+    return response.data;
   },
 
   // ========== Resume Management ==========
@@ -38,7 +38,7 @@ const studentService = {
         'Content-Type': 'multipart/form-data',
       },
     });
-    return response;
+    return response.data;
   },
 
   /**
@@ -46,7 +46,7 @@ const studentService = {
    */
   deleteResume: async () => {
     const response = await api.delete('/student/resume');
-    return response;
+    return response.data;
   },
 
   // ========== Placement Drives ==========
@@ -56,7 +56,7 @@ const studentService = {
    */
   getActiveDrives: async () => {
     const response = await api.get('/student/drives/active');
-    return response;
+    return response.data;
   },
 
   /**
@@ -66,7 +66,7 @@ const studentService = {
     const response = await api.post(`/student/drives/${driveId}/apply`, {
       coverLetter
     });
-    return response;
+    return response.data;
   },
 
   // ========== Applications Management ==========
@@ -76,7 +76,7 @@ const studentService = {
    */
   getMyApplications: async () => {
     const response = await api.get('/student/applications');
-    return response;
+    return response.data;
   },
 
   /**
@@ -84,7 +84,7 @@ const studentService = {
    */
   getApplicationStatus: async (applicationId) => {
     const response = await api.get(`/student/applications/${applicationId}/status`);
-    return response;
+    return response.data;
   },
 
   /**
@@ -92,7 +92,7 @@ const studentService = {
    */
   withdrawApplication: async (applicationId) => {
     const response = await api.delete(`/student/applications/${applicationId}`);
-    return response;
+    return response.data;
   },
 
   /**
@@ -100,7 +100,7 @@ const studentService = {
    */
   downloadOfferLetter: async (applicationId) => {
     const response = await api.get(`/student/applications/${applicationId}/offer-letter`);
-    return response;
+    return response.data;
   },
 
   // ========== Dashboard ==========
@@ -110,7 +110,7 @@ const studentService = {
    */
   getDashboard: async () => {
     const response = await api.get('/student/dashboard');
-    return response;
+    return response.data;
   }
 };
 
