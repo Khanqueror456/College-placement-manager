@@ -7,7 +7,9 @@ import Company from '../models/company.js';
 import Drive from '../models/drive.js';
 import Application from '../models/application.js';
 import User from '../models/users.js';
+import StudentSkill from '../models/studentSkills.js';
 import { Op } from 'sequelize';
+import sequelize from '../config/database.js';
 import ExcelJS from 'exceljs';
 import PDFDocument from 'pdfkit';
 
@@ -951,7 +953,15 @@ export const getAllStudents = asyncHandler(async (req, res, next) => {
     limit: parseInt(limit),
     offset: offset,
     order: [['createdAt', 'DESC']],
-    attributes: ['id', 'name', 'email', 'student_id', 'department', 'batch_year', 'cgpa', 'phone', 'profile_status', 'resume_path', 'ats_score']
+    attributes: ['id', 'name', 'email', 'student_id', 'department', 'batch_year', 'cgpa', 'phone', 'profile_status', 'resume_path', 'ats_score', 'is_approved'],
+    include: [
+      {
+        model: StudentSkill,
+        as: 'skills',
+        attributes: ['skill_name', 'skill_category', 'proficiency_level'],
+        required: false
+      }
+    ]
   });
 
   res.status(200).json({
@@ -1184,24 +1194,136 @@ export const generatePDFReport = asyncHandler(async (req, res, next) => {
   logActivity('PDF_REPORT_GENERATED', req.user.id, { department, batchYear });
 });
 
-export default {
-  createDrive,
-  updateDrive,
-  deleteDrive,
-  getAllDrives,
-  closeDrive,
-  addCompany,
-  getAllCompanies,
-  getApplicationsForDrive,
-  updateApplicationStatus,
-  bulkUpdateStatus,
-  uploadOfferLetter,
-  sendNotification,
-  getDashboard,
-  getPendingStudents,
-  approveStudent,
-  getAllStudents,
-  updateStudentProfile,
-  generateExcelReport,
-  generatePDFReport
-};
+// @desc    Filter students by skills/tech stack
+// @route   GET /api/tpo/students/filter-by-skills
+// @access  Private (TPO)
+export const filterStudentsBySkills = asyncHandler(async (req, res, next) => {
+  const { skills, department, batchYear, minCgpa, matchType = 'any' } = req.query;
+
+  if (!skills) {
+    throw new AppError('Please provide skills to filter', 400);
+  }
+
+  // Parse skills (comma-separated)
+  const skillList = skills.split(',').map(s => s.trim().toLowerCase());
+
+  // Build base where clause
+  const whereClause = {
+    role: 'STUDENT',
+    profile_status: 'APPROVED'
+  };
+
+  if (department) whereClause.department = department;
+  if (batchYear) whereClause.batch_year = parseInt(batchYear);
+  if (minCgpa) whereClause.cgpa = { [Op.gte]: parseFloat(minCgpa) };
+
+  // Find students with matching skills
+  let studentSkillsQuery = {
+    where: {
+      skill_name: {
+        [Op.iLike]: { [Op.any]: skillList.map(skill => `%${skill}%`) }
+      }
+    },
+    attributes: ['student_id'],
+    group: ['student_id'],
+    raw: true
+  };
+
+  if (matchType === 'all') {
+    // Student must have ALL specified skills
+    studentSkillsQuery.having = sequelize.literal(`COUNT(DISTINCT LOWER(skill_name)) >= ${skillList.length}`);
+  }
+
+  const studentsWithSkills = await StudentSkill.findAll(studentSkillsQuery);
+  const studentIds = studentsWithSkills.map(s => s.student_id);
+
+  if (studentIds.length === 0) {
+    return res.status(200).json({
+      success: true,
+      message: 'No students found with specified skills',
+      students: [],
+      totalCount: 0
+    });
+  }
+
+  // Fetch student details with their skills
+  whereClause.id = { [Op.in]: studentIds };
+
+  const students = await User.findAll({
+    where: whereClause,
+    attributes: ['id', 'name', 'email', 'student_id', 'department', 'batch_year', 'cgpa', 'phone', 'ats_score', 'resume_path'],
+    include: [
+      {
+        model: StudentSkill,
+        as: 'skills',
+        attributes: ['skill_name', 'skill_category', 'proficiency_level'],
+        required: false
+      }
+    ],
+    order: [['ats_score', 'DESC NULLS LAST'], ['cgpa', 'DESC']]
+  });
+
+  // Format response
+  const formattedStudents = students.map(student => ({
+    id: student.id,
+    name: student.name,
+    email: student.email,
+    studentId: student.student_id,
+    department: student.department,
+    batchYear: student.batch_year,
+    cgpa: student.cgpa,
+    phone: student.phone,
+    atsScore: student.ats_score,
+    hasResume: !!student.resume_path,
+    skills: student.skills || [],
+    matchedSkills: (student.skills || [])
+      .filter(skill => skillList.some(searchSkill => 
+        skill.skill_name.toLowerCase().includes(searchSkill)
+      ))
+      .map(s => s.skill_name)
+  }));
+
+  res.status(200).json({
+    success: true,
+    totalCount: formattedStudents.length,
+    filterCriteria: {
+      skills: skillList,
+      matchType,
+      department: department || 'all',
+      batchYear: batchYear || 'all',
+      minCgpa: minCgpa || 'any'
+    },
+    students: formattedStudents
+  });
+});
+
+// @desc    Get all unique skills from database
+// @route   GET /api/tpo/skills/all
+// @access  Private (TPO)
+export const getAllSkills = asyncHandler(async (req, res, next) => {
+  const { category } = req.query;
+
+  const whereClause = {};
+  if (category) whereClause.skill_category = category;
+
+  const skills = await StudentSkill.findAll({
+    where: whereClause,
+    attributes: [
+      'skill_name',
+      'skill_category',
+      [sequelize.fn('COUNT', sequelize.col('student_id')), 'student_count']
+    ],
+    group: ['skill_name', 'skill_category'],
+    order: [[sequelize.literal('student_count'), 'DESC']]
+  });
+
+  res.status(200).json({
+    success: true,
+    totalSkills: skills.length,
+    skills: skills.map(s => ({
+      name: s.skill_name,
+      category: s.skill_category,
+      studentCount: parseInt(s.dataValues.student_count)
+    }))
+  });
+});

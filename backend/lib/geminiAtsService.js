@@ -108,6 +108,14 @@ Please analyze this resume and provide a detailed JSON response with the followi
   "keySkills": [
     <list of technical and professional skills identified>
   ],
+  "extractedSkills": {
+    "programming_languages": [<list of programming languages like "Python", "Java", "JavaScript", "C++", etc.>],
+    "frameworks": [<list of frameworks like "React", "Node.js", "Django", "Spring Boot", etc.>],
+    "databases": [<list of databases like "MySQL", "MongoDB", "PostgreSQL", etc.>],
+    "cloud_platforms": [<list of cloud platforms like "AWS", "Azure", "GCP", etc.>],
+    "tools": [<list of tools like "Git", "Docker", "Kubernetes", "Jenkins", etc.>],
+    "soft_skills": [<list of soft skills like "Leadership", "Communication", "Teamwork", etc.>]
+  },
   "rating": <"Excellent" | "Good" | "Average" | "Needs Improvement">,
   "summary": <brief 2-3 sentence summary of the candidate's profile>
 }
@@ -118,6 +126,8 @@ Important guidelines:
 3. Consider relevance for placement/campus recruitment
 4. Provide specific, actionable recommendations
 5. Ensure the atsScore is calculated as: technical + experience + education + softSkills + formatting
+6. Extract ALL technical skills found in the resume and categorize them properly
+7. Be comprehensive in skill extraction - don't miss any mentioned skills
 6. Return ONLY valid JSON, no additional text or markdown formatting
 `;
 

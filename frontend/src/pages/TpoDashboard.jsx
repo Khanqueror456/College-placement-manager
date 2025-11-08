@@ -142,7 +142,7 @@ const TpoDashboard = () => {
             />
             <ActionCard
               title="Student Management"
-              description="View and approve student profiles"
+              description="Filter students by skills and view profiles"
               icon={Users}
               onClick={() => navigate('/tpo/students')}
             />

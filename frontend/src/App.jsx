@@ -21,6 +21,7 @@ import TpoDashboard from './pages/TpoDashboard.jsx';
 import TpoCompanies from './pages/TpoCompanies.jsx';
 import TpoDrives from './pages/TpoDrives.jsx';
 import TpoApplications from './pages/TpoApplications.jsx';
+import TpoStudents from './pages/TpoStudents.jsx';
 import { AuthProvider } from './context/AuthContext';
 import ApiTest from './pages/ApiTest';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -85,6 +86,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['TPO']}>
               <TpoApplications/>
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/tpo/students" 
+          element={
+            <ProtectedRoute allowedRoles={['TPO']}>
+              <TpoStudents/>
             </ProtectedRoute>
           }
         />

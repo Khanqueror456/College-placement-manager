@@ -18,7 +18,9 @@ import {
   getAllStudents,
   updateStudentProfile,
   generateExcelReport,
-  generatePDFReport
+  generatePDFReport,
+  filterStudentsBySkills,
+  getAllSkills
 } from '../controllers/tpoController.js';
 import { getResume } from '../controllers/studentController.js';
 import { authenticate, isTPO } from '../middlewares/auth.js';
@@ -52,10 +54,14 @@ router.post('/applications/:applicationId/offer-letter', uploadOfferLetterMiddle
 
 // Student management routes
 router.get('/students/pending', getPendingStudents);
+router.get('/students/filter-by-skills', filterStudentsBySkills); // Filter students by skills
 router.get('/students/:studentId/resume', getResume); // View student resume
 router.get('/students', getAllStudents);
 router.put('/students/:studentId/approve', approveStudent);
 router.put('/students/:studentId', updateStudentProfile);
+
+// Skills routes
+router.get('/skills/all', getAllSkills); // Get all unique skills with counts
 
 // Report generation routes
 router.get('/reports/excel', generateExcelReport);

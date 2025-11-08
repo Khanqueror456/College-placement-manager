@@ -8,6 +8,7 @@ import User from '../models/users.js';
 import Drive from '../models/drive.js';
 import Application from '../models/application.js';
 import Company from '../models/company.js';
+import StudentSkill from '../models/studentSkills.js';
 import { calculateATSScoreWithGemini } from '../lib/geminiAtsService.js';
 import { Op } from 'sequelize';
 
@@ -126,11 +127,56 @@ export const uploadResume = asyncHandler(async (req, res, next) => {
   // Calculate ATS score using Gemini AI
   let atsScore = null;
   let atsAnalysis = null;
+  let extractedSkills = [];
+  
   try {
     console.log('🤖 Analyzing resume with Gemini AI...');
     atsAnalysis = await calculateATSScoreWithGemini(resumeFilePath, req.file.mimetype);
     atsScore = atsAnalysis.atsScore;
     console.log(`✅ ATS Score calculated: ${atsScore}/100`);
+    
+    // Extract and save skills to database
+    if (atsAnalysis.extractedSkills) {
+      console.log('💼 Extracting skills from resume...');
+      
+      // Delete old skills for this student
+      await StudentSkill.destroy({ where: { student_id: studentId } });
+      
+      // Prepare skills data for bulk insert
+      const skillsToInsert = [];
+      
+      // Map category names to database enum values
+      const categoryMap = {
+        'programming_languages': 'programming_language',
+        'frameworks': 'framework',
+        'databases': 'database',
+        'cloud_platforms': 'cloud',
+        'tools': 'tool',
+        'soft_skills': 'soft_skill'
+      };
+      
+      // Process each skill category
+      Object.entries(atsAnalysis.extractedSkills).forEach(([category, skills]) => {
+        if (Array.isArray(skills)) {
+          skills.forEach(skill => {
+            skillsToInsert.push({
+              student_id: studentId,
+              skill_name: skill,
+              skill_category: categoryMap[category] || 'other',
+              extracted_from_resume: true,
+              verified: false
+            });
+          });
+        }
+      });
+      
+      // Bulk insert skills
+      if (skillsToInsert.length > 0) {
+        await StudentSkill.bulkCreate(skillsToInsert);
+        extractedSkills = skillsToInsert.map(s => s.skill_name);
+        console.log(`✅ Extracted ${skillsToInsert.length} skills`);
+      }
+    }
   } catch (error) {
     console.error('⚠️ Error calculating ATS score:', error.message);
     // Continue without ATS score if Gemini fails
@@ -148,7 +194,8 @@ export const uploadResume = asyncHandler(async (req, res, next) => {
   // Log activity
   logActivity('RESUME_UPLOADED', studentId, { 
     filename: req.file.filename,
-    atsScore: atsScore
+    atsScore: atsScore,
+    skillsExtracted: extractedSkills.length
   });
 
   res.status(200).json({
@@ -158,6 +205,8 @@ export const uploadResume = asyncHandler(async (req, res, next) => {
     filename: resumeFilename,
     uploadedAt: student.last_resume_update,
     atsScore: atsScore,
+    skillsExtracted: extractedSkills.length,
+    skills: extractedSkills,
     atsAnalysis: atsAnalysis ? {
       rating: atsAnalysis.rating,
       strengths: atsAnalysis.strengths,

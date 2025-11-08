@@ -5,6 +5,7 @@ import User from './users.js';
 import Company from './company.js';
 import Drive from './drive.js';
 import Application from './application.js';
+import StudentSkill from './studentSkills.js';
 
 // Define associations
 Company.hasMany(Drive, { foreignKey: 'company_id', as: 'drives' });
@@ -22,5 +23,9 @@ Company.belongsTo(User, { foreignKey: 'added_by', as: 'added_by_user' });
 User.hasMany(Drive, { foreignKey: 'created_by', as: 'drives_created' });
 Drive.belongsTo(User, { foreignKey: 'created_by', as: 'creator' });
 
-export { User, Company, Drive, Application };
+// Student Skills associations
+User.hasMany(StudentSkill, { foreignKey: 'student_id', as: 'skills' });
+StudentSkill.belongsTo(User, { foreignKey: 'student_id', as: 'student' });
+
+export { User, Company, Drive, Application, StudentSkill };
 export default sequelize;
