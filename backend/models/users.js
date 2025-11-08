@@ -86,6 +86,16 @@ const User = sequelize.define(
       type: DataTypes.ENUM('PENDING', 'APPROVED', 'REJECTED', 'INCOMPLETE'),
       defaultValue: 'INCOMPLETE',
     },
+    
+    // Password Reset fields
+    resetPasswordToken: {
+      type: DataTypes.STRING,
+      allowNull: true,
+    },
+    resetPasswordExpire: {
+      type: DataTypes.DATE,
+      allowNull: true,
+    },
   },
   {
     timestamps: true,

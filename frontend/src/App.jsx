@@ -1,5 +1,7 @@
 import './App.css'
 import Login from './pages/login';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import StudentProfile from './pages/student_profile';
 import StudentDrives from './pages/StudentDrives';
 import StudentDriveStatus from './pages/StudentDriveStatus';
@@ -50,6 +52,8 @@ function App() {
         <Route path="/about" element={<AboutPage/>} />
         <Route path="/contact" element={<ContactPage/>} />
         <Route path="/login" element={<Login/>}/>
+        <Route path="/forgot-password" element={<ForgotPassword/>}/>
+        <Route path="/reset-password/:token" element={<ResetPassword/>}/>
         
         {/* TPO Protected Routes */}
         <Route 

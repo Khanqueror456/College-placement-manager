@@ -710,6 +710,122 @@ export const sendBulkNotification = async (recipients, subject, message, driveDe
 };
 
 /**
+ * Send password reset email
+ * @param {Object} user - User details
+ * @param {string} resetToken - Password reset token
+ * @param {string} resetUrl - Password reset URL
+ */
+export const sendPasswordResetEmail = async (user, resetToken, resetUrl) => {
+  const subject = '🔐 Password Reset Request - College Placement Portal';
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+      <div style="background-color: #2196F3; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        <h1 style="margin: 0; font-size: 24px;">🔐 Password Reset Request</h1>
+      </div>
+      
+      <div style="background-color: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+          Dear <strong>${user.name}</strong>,
+        </p>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+          We received a request to reset your password for the College Placement Portal. 
+          If you didn't make this request, you can safely ignore this email.
+        </p>
+        
+        <div style="background-color: #fff3e0; padding: 15px; border-left: 4px solid #FF9800; margin: 20px 0;">
+          <h3 style="color: #ef6c00; margin: 0 0 10px 0;">⚠️ Important Security Information</h3>
+          <ul style="color: #333; margin: 0; padding-left: 20px;">
+            <li>This link is valid for <strong>15 minutes</strong> only</li>
+            <li>For security reasons, the link can only be used once</li>
+            <li>Never share this link with anyone</li>
+            <li>If you didn't request this, please contact support immediately</li>
+          </ul>
+        </div>
+        
+        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 6px; margin: 20px 0;">
+          <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
+            <strong>Account Details:</strong>
+          </p>
+          <p style="margin: 5px 0; color: #666;"><strong>Email:</strong> ${user.email}</p>
+          <p style="margin: 5px 0; color: #666;"><strong>Role:</strong> ${user.role}</p>
+          <p style="margin: 5px 0; color: #666;"><strong>Department:</strong> ${user.department || 'N/A'}</p>
+          <p style="margin: 5px 0; color: #666;"><strong>Request Time:</strong> ${new Date().toLocaleString('en-IN')}</p>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetUrl}" 
+             style="background-color: #4CAF50; color: white; padding: 14px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;">
+            Reset Your Password
+          </a>
+        </div>
+        
+        <div style="background-color: #e3f2fd; padding: 15px; border-radius: 6px; margin: 20px 0;">
+          <h3 style="color: #1976d2; margin: 0 0 10px 0;">🔗 Alternative Link</h3>
+          <p style="color: #333; margin: 0 0 10px 0; font-size: 14px;">
+            If the button doesn't work, copy and paste this link into your browser:
+          </p>
+          <p style="color: #1976d2; margin: 0; word-break: break-all; font-size: 13px;">
+            ${resetUrl}
+          </p>
+        </div>
+        
+        <div style="background-color: #ffebee; padding: 15px; border-radius: 6px; margin: 20px 0;">
+          <h3 style="color: #c62828; margin: 0 0 10px 0;">🛡️ Didn't Request This?</h3>
+          <p style="color: #333; margin: 0; font-size: 14px;">
+            If you didn't request a password reset, please ignore this email. Your password will remain unchanged.
+            For security concerns, please contact the Placement Cell immediately.
+          </p>
+        </div>
+        
+        <p style="font-size: 14px; color: #666; text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+          This is an automated email. Please do not reply to this message.<br>
+          <strong>College Placement Portal</strong><br>
+          Training & Placement Cell
+        </p>
+      </div>
+    </div>
+  `;
+
+  const text = `
+    Dear ${user.name},
+    
+    We received a request to reset your password for the College Placement Portal.
+    
+    IMPORTANT SECURITY INFORMATION:
+    - This link is valid for 15 minutes only
+    - For security reasons, the link can only be used once
+    - Never share this link with anyone
+    - If you didn't request this, please contact support immediately
+    
+    Account Details:
+    - Email: ${user.email}
+    - Role: ${user.role}
+    - Department: ${user.department || 'N/A'}
+    - Request Time: ${new Date().toLocaleString('en-IN')}
+    
+    To reset your password, click the link below or copy it into your browser:
+    ${resetUrl}
+    
+    DIDN'T REQUEST THIS?
+    If you didn't request a password reset, please ignore this email. Your password will remain unchanged.
+    For security concerns, please contact the Placement Cell immediately.
+    
+    Best regards,
+    College Placement Portal
+    Training & Placement Cell
+  `;
+
+  return await sendEmail({
+    to: user.email,
+    subject,
+    html,
+    text
+  });
+};
+
+/**
  * Test email configuration
  */
 export const testEmailConnection = async () => {
@@ -753,5 +869,6 @@ export default {
   sendNewDriveNotification,
   sendOfferLetterEmail,
   sendBulkNotification,
+  sendPasswordResetEmail,
   testEmailConnection
 };

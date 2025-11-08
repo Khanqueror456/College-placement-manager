@@ -183,23 +183,27 @@ export const validateRoundResult = [
  * Email Validation
  */
 export const validateEmail = [
-  body('to')
-    .notEmpty().withMessage('Recipient email is required')
-    .custom((value) => {
-      if (Array.isArray(value)) {
-        return value.every(email => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
-      }
-      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-    }).withMessage('Invalid email format'),
-  
-  body('subject')
+  body('email')
     .trim()
-    .notEmpty().withMessage('Email subject is required')
-    .isLength({ min: 1, max: 200 }).withMessage('Subject must be between 1-200 characters'),
+    .notEmpty().withMessage('Email is required')
+    .isEmail().withMessage('Invalid email format')
+    .normalizeEmail(),
   
-  body('body')
-    .trim()
-    .notEmpty().withMessage('Email body is required'),
+  validate
+];
+
+/**
+ * Reset Password Validation
+ */
+export const validateResetPassword = [
+  body('password')
+    .notEmpty().withMessage('Password is required')
+    .isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  
+  body('confirmPassword')
+    .notEmpty().withMessage('Confirm password is required')
+    .custom((value, { req }) => value === req.body.password)
+    .withMessage('Passwords do not match'),
   
   validate
 ];
@@ -296,6 +300,7 @@ export default {
   validateApplication,
   validateRoundResult,
   validateEmail,
+  validateResetPassword,
   validateChangePassword,
   validateId,
   validatePagination,

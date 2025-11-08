@@ -110,12 +110,27 @@ export const forgotPassword = async (email) => {
 };
 
 // Reset password
-export const resetPassword = async (token, password) => {
+export const resetPassword = async (token, password, confirmPassword) => {
   try {
-    const response = await api.post(`/auth/reset-password/${token}`, { password });
+    const response = await api.put(`/auth/reset-password/${token}`, { 
+      password,
+      confirmPassword 
+    });
     return response.data;
   } catch (error) {
-    throw error;
+    // Format error message properly
+    let errorMessage = 'Failed to reset password. Please try again.';
+    
+    if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+      // Validation errors
+      errorMessage = error.response.data.errors.map(err => err.message).join(', ');
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    throw errorMessage;
   }
 };
 

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
 
@@ -451,7 +451,7 @@ const LoginScreen = ({ role, onBack}) => {
         {isLoginMode && (
           <p className="mt-6 text-center text-sm">
             Forgot your password? 
-            <a href="#" className="font-bold ml-1 text-sky-400 hover:text-sky-300 transition duration-300">Reset</a>
+            <Link to="/forgot-password" className="font-bold ml-1 text-sky-400 hover:text-sky-300 transition duration-300">Reset</Link>
           </p>
         )}
       </div>

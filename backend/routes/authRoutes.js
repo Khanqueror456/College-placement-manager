@@ -14,7 +14,8 @@ import {
   validateRegistration,
   validateLogin,
   validateChangePassword,
-  validateEmail
+  validateEmail,
+  validateResetPassword
 } from '../middlewares/validate.js';
 
 const router = express.Router();
@@ -23,7 +24,7 @@ const router = express.Router();
 router.post('/register', validateRegistration, register);
 router.post('/login', validateLogin, login);
 router.post('/forgot-password', validateEmail, forgotPassword);
-router.post('/reset-password/:token', resetPassword);
+router.put('/reset-password/:token', validateResetPassword, resetPassword);
 router.post('/refresh-token', refreshToken);
 
 // Protected routes
