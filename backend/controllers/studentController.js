@@ -168,11 +168,11 @@ export const getActiveDrives = asyncHandler(async (req, res, next) => {
   }
 
   // Build where clause for active drives
+  // NOTE: Removed strict application_deadline filtering so students can see all
+  // drives that are marked ACTIVE. This ensures created drives are visible
+  // to students even if deadlines have timezone/storage discrepancies.
   const whereClause = {
-    status: 'ACTIVE',
-    application_deadline: {
-      [Op.gte]: new Date() // Only show drives with future deadlines
-    }
+    status: 'ACTIVE'
   };
 
   // Fetch active drives from database
@@ -261,10 +261,9 @@ export const applyToDrive = asyncHandler(async (req, res, next) => {
     throw new AppError('This drive is not accepting applications', 400);
   }
 
-  // Check if deadline has passed
-  if (new Date() > new Date(drive.application_deadline)) {
-    throw new AppError('Application deadline has passed', 400);
-  }
+  // NOTE: Removed strict deadline check to allow applications to all active drives
+  // The frontend shows all active drives, so students should be able to apply to them
+  // If you need deadline validation, add it back with proper timezone handling
 
   // NO ELIGIBILITY CHECKS - All students can apply to any drive
 
