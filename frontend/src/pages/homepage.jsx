@@ -13,14 +13,17 @@ import {
   Building
 } from 'lucide-react';
 
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import api from '../services/api';
 
 // --- Hero Section ---
-const HeroSection = ({ onSignup }) => (
-  <section className="relative min-h-screen flex items-center justify-center text-center p-8 overflow-hidden">
+const HeroSection = () => {
+  const navigate = useNavigate();
+  
+  return (
+    <section className="relative min-h-screen flex items-center justify-center text-center p-8 overflow-hidden">
     {/* Background Glow Effect */}
     <div className="absolute inset-0 -z-10 bg-slate-900 
       bg-[radial-gradient(ellipse_at_center,var(--tw-gradient-stops))] 
@@ -46,7 +49,7 @@ const HeroSection = ({ onSignup }) => (
         Explore opportunities, track your progress, and secure your future.
       </p>
       <button 
-        onClick={onSignup}
+        onClick={() => navigate('/login')}
         className="
           flex items-center gap-2 mx-auto
           px-8 py-4 rounded-lg font-semibold
@@ -60,7 +63,8 @@ const HeroSection = ({ onSignup }) => (
       </button>
     </div>
   </section>
-);
+  );
+};
 
 // --- Features (About) Section ---
 const FeaturesSection = () => (
@@ -200,12 +204,12 @@ const ContactSection = () => (
 
 
 // --- Main HomePage Component ---
-const HomePage = ({ onLoginClick, onSignupClick }) => {
+const HomePage = () => {
   return (
     <div className="bg-slate-900 text-slate-200 scroll-smooth">
-      <Navbar onLogin={onLoginClick} onSignup={onSignupClick} />
+      <Navbar />
       <main>
-        <HeroSection onSignup={onSignupClick} />
+        <HeroSection />
         <StatsSection />
         <FeaturesSection />
         <ContactSection />
