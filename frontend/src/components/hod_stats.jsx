@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Chart as ChartJS,
@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { getHodDashboard } from '../services/hodService';
 
 // --- Register Chart.js components ---
 ChartJS.register(
@@ -35,86 +36,48 @@ ChartJS.register(
   Legend
 );
 
-// --- Mock Data ---
-const MOCK_DATA = {
-  success: true,
-  department: "Computer Science",
-  statistics: {
-    totalStudents: 120,
-    registeredStudents: 118,
-    placedStudents: 85,
-    placementPercentage: 72.03,
-    averagePackage: "8.5 LPA",
-    highestPackage: "45 LPA",
-    lowestPackage: "3.5 LPA",
-    totalOffers: 95,
-    pendingApprovals: 2,
-    topCompanies: [
-      { name: "Google", offers: 5 },
-      { name: "Microsoft", offers: 8 },
-      { name: "Amazon", offers: 6 },
-    ],
-    packageDistribution: {
-      "0-5 LPA": 25,
-      "5-10 LPA": 40,
-      "10-20 LPA": 15,
-      "20+ LPA": 5,
-    },
-  },
-};
-
-// --- Reusable Stat Card Component ---
-const StatCard = ({ title, value, icon, colorClass }) => {
-  const Icon = icon;
-  const colorMap = {
-    emerald: { main: '#10b981', light: '#34d399' },
-    sky: { main: '#38bdf8', light: '#7dd3fc' },
-    yellow: { main: '#facc15', light: '#fde047' },
-    red: { main: '#ef4444', light: '#f87171' },
-  };
-  const colors = colorMap[colorClass] || colorMap.emerald;
-
-  return (
-    <div
-      className="p-6 rounded-2xl relative overflow-hidden shadow-lg border"
-      style={{
-        backgroundColor: '#1e293b',
-        borderColor: '#475569',
-      }}
-    >
-      {/* Top Accent Bar */}
-      <div
-        style={{ backgroundColor: colors.main }}
-        className="absolute top-0 left-0 h-1.5 w-full"
-      ></div>
-
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium" style={{ color: '#94a3b8' }}>
-            {title}
-          </p>
-          <p
-            className="text-3xl font-extrabold mt-1"
-            style={{ color: '#e2e8f0' }}
-          >
-            {value}
-          </p>
-        </div>
-        <div
-          className="p-3 rounded-full"
-          style={{ backgroundColor: `${colors.main}33` }}
-        >
-          <Icon className="w-6 h-6" style={{ color: colors.light }} />
-        </div>
-      </div>
-    </div>
-  );
-};
-
 // --- Main Statistics Component ---
 const HodStatistics = () => {
-  const stats = MOCK_DATA.statistics;
-  const reportRef = useRef(); // 👈 reference for capturing the content
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [department, setDepartment] = useState('');
+  const reportRef = useRef();
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await getHodDashboard();
+      const dashboardData = response.dashboard;
+      
+      // Transform dashboard data to stats format
+      const transformedStats = {
+        totalStudents: dashboardData.totalStudents || 0,
+        registeredStudents: dashboardData.totalStudents || 0,
+        placedStudents: dashboardData.placedStudents || 0,
+        placementPercentage: dashboardData.placementPercentage || 0,
+        averagePackage: "N/A",
+        highestPackage: "N/A",
+        lowestPackage: "N/A",
+        totalOffers: dashboardData.placedStudents || 0,
+        pendingApprovals: dashboardData.pendingApprovals || 0,
+        topCompanies: [],
+        packageDistribution: {}
+      };
+      
+      setStats(transformedStats);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load statistics');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // --- PDF Download Handler ---
   const handleDownloadPDF = async () => {
@@ -140,7 +103,78 @@ const HodStatistics = () => {
       heightLeft -= pageHeight;
     }
 
-    pdf.save(`${MOCK_DATA.department}_Statistics_Report.pdf`);
+    pdf.save(`Department_Statistics_Report.pdf`);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0f172a' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mx-auto"></div>
+          <p className="mt-4 text-slate-400">Loading statistics...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0f172a' }}>
+        <div className="bg-red-500/20 border border-red-500 text-red-400 px-6 py-4 rounded-lg">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return null;
+  }
+
+  // --- Reusable Stat Card Component ---
+  const StatCard = ({ title, value, icon, colorClass }) => {
+    const Icon = icon;
+    const colorMap = {
+      emerald: { main: '#10b981', light: '#34d399' },
+      sky: { main: '#38bdf8', light: '#7dd3fc' },
+      yellow: { main: '#facc15', light: '#fde047' },
+      red: { main: '#ef4444', light: '#f87171' },
+    };
+    const colors = colorMap[colorClass] || colorMap.emerald;
+
+    return (
+      <div
+        className="p-6 rounded-2xl relative overflow-hidden shadow-lg border"
+        style={{
+          backgroundColor: '#1e293b',
+          borderColor: '#475569',
+        }}
+      >
+        <div
+          style={{ backgroundColor: colors.main }}
+          className="absolute top-0 left-0 h-1.5 w-full"
+        ></div>
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-sm font-medium" style={{ color: '#94a3b8' }}>
+              {title}
+            </p>
+            <p
+              className="text-3xl font-extrabold mt-1"
+              style={{ color: '#e2e8f0' }}
+            >
+              {value}
+            </p>
+          </div>
+          <div
+            className="p-3 rounded-full"
+            style={{ backgroundColor: `${colors.main}33` }}
+          >
+            <Icon className="w-6 h-6" style={{ color: colors.light }} />
+          </div>
+        </div>
+      </div>
+    );
   };
 
   // --- Chart.js Options (Dark Theme) ---
@@ -171,11 +205,11 @@ const HodStatistics = () => {
   };
 
   const doughnutData = {
-    labels: Object.keys(stats.packageDistribution),
+    labels: Object.keys(stats.packageDistribution || {}),
     datasets: [
       {
         label: '# of Students',
-        data: Object.values(stats.packageDistribution),
+        data: Object.values(stats.packageDistribution || {}),
         backgroundColor: ['#38bdf8', '#10b981', '#facc15', '#ef4444'],
         borderColor: '#0f172a',
         borderWidth: 4,
@@ -192,11 +226,11 @@ const HodStatistics = () => {
   };
 
   const barData = {
-    labels: stats.topCompanies.map((c) => c.name),
+    labels: (stats.topCompanies || []).map((c) => c.name),
     datasets: [
       {
         label: 'Offers Made',
-        data: stats.topCompanies.map((c) => c.offers),
+        data: (stats.topCompanies || []).map((c) => c.offers),
         backgroundColor: '#38bdf8cc',
         borderColor: '#38bdf8',
         borderWidth: 2,
@@ -243,7 +277,7 @@ const HodStatistics = () => {
             </button>
           </Link>
           <h1 className="text-3xl font-extrabold" style={{ color: '#e2e8f0' }}>
-            {MOCK_DATA.department} Department Statistics
+            Department Statistics
           </h1>
         </div>
 

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { getPendingApprovals, approveStudent, rejectStudent } from '../services/hodService';
+
 // --- SVG Icons ---
 const LogoutIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 mr-2">
@@ -18,32 +19,62 @@ const XIcon = () => (
   </svg>
 );
 
-// --- Mock Data for Pending Students ---
-const MOCK_STUDENTS = [
-  { id: '101', name: 'Alice Smith', email: 'alice.smith@example.com', status: 'pending' },
-  { id: '102', name: 'Bob Johnson', email: 'bob.johnson@example.com', status: 'pending' },
-  { id: '103', name: 'Charlie Brown', email: 'charlie.brown@example.com', status: 'approved' },
-  { id: '104', name: 'David Lee', email: 'david.lee@example.com', status: 'pending' },
-  { id: '105', name: 'Eve Davis', email: 'eve.davis@example.com', status: 'denied' },
-];
-
 // --- HOD Dashboard Component ---
-const HodDashboard = () => {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-  const [students, setStudents] = useState(MOCK_STUDENTS);
+const HodDashboard = ({ onLogout }) => {
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null);
 
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login');
+  useEffect(() => {
+    fetchPendingStudents();
+  }, []);
+
+  const fetchPendingStudents = async () => {
+    try {
+      setLoading(true);
+      const response = await getPendingApprovals();
+      // Format the data to match component expectations
+      const formattedStudents = response.students.map(student => ({
+        id: student.id,
+        name: student.name,
+        email: student.email,
+        rollNumber: student.rollNumber,
+        department: student.department,
+        phone: student.phone,
+        status: 'pending'
+      }));
+      setStudents(formattedStudents);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching pending students:', err);
+      setError('Failed to load pending approvals');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleUpdateStatus = (studentId, newStatus) => {
-    setStudents(currentStudents =>
-      currentStudents.map(student =>
-        student.id === studentId ? { ...student, status: newStatus } : student
-      )
-    );
+  const handleUpdateStatus = async (studentId, newStatus) => {
+    try {
+      setActionLoading(studentId);
+      
+      if (newStatus === 'approved') {
+        await approveStudent(studentId);
+      } else if (newStatus === 'denied') {
+        await rejectStudent(studentId, 'Registration rejected by HOD');
+      }
+
+      // Update local state
+      setStudents(currentStudents =>
+        currentStudents.filter(student => student.id !== studentId)
+      );
+      
+      setActionLoading(null);
+    } catch (err) {
+      console.error('Error updating student status:', err);
+      alert('Failed to update student status. Please try again.');
+      setActionLoading(null);
+    }
   };
 
   const pendingStudents = students.filter(s => s.status === 'pending');
@@ -93,7 +124,7 @@ const HodDashboard = () => {
           </Link>
 
           <button
-            onClick={handleLogout}
+            onClick={onLogout}
             className="
             flex items-center px-4 py-2 rounded-lg font-semibold
             bg-slate-700 hover:bg-slate-600
@@ -114,61 +145,84 @@ const HodDashboard = () => {
       <main className="flex-grow p-8">
         <div className="max-w-6xl mx-auto">
 
-          {/* --- Pending Approvals Section --- */}
-          <section className="mb-12">
-            <h2 className="text-3xl font-extrabold text-slate-100 mb-6">
-              Pending Approvals
-              <span className="
-                ml-3 px-3 py-1 rounded-full text-base font-bold
-                bg-sky-500 text-white
-              ">
-                {pendingStudents.length}
-              </span>
-            </h2>
-
-            {pendingStudents.length === 0 ? (
-              <p className="text-slate-400">No pending student signups.</p>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {pendingStudents.map(student => (
-                  <StudentCard
-                    key={student.id}
-                    student={student}
-                    onApprove={() => handleUpdateStatus(student.id, 'approved')}
-                    onDeny={() => handleUpdateStatus(student.id, 'denied')}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* --- Processed Students Section --- */}
-          <section>
-            <h2 className="text-3xl font-extrabold text-slate-100 mb-6">
-              Processed Students
-            </h2>
-            <div className="
-              rounded-xl border border-slate-500 border-opacity-30
-              bg-slate-700 bg-opacity-20 backdrop-filter backdrop-blur-lg
-            ">
-              <ul className="divide-y divide-slate-500 divide-opacity-30">
-                {otherStudents.map(student => (
-                  <li key={student.id} className="p-4 flex justify-between items-center">
-                    <div>
-                      <p className="font-semibold text-slate-100">{student.name}</p>
-                      <p className="text-sm text-slate-400">{student.email}</p>
-                    </div>
-                    <span className={`
-                      px-3 py-1 rounded-full text-xs font-bold
-                      ${student.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}
-                    `}>
-                      {student.status.charAt(0).toUpperCase() + student.status.slice(1)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mx-auto"></div>
+              <p className="mt-4 text-slate-400">Loading pending approvals...</p>
             </div>
-          </section>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg mb-6">
+              {error}
+            </div>
+          )}
+
+          {/* Content */}
+          {!loading && !error && (
+            <>
+              {/* --- Pending Approvals Section --- */}
+              <section className="mb-12">
+                <h2 className="text-3xl font-extrabold text-slate-100 mb-6">
+                  Pending Approvals
+                  <span className="
+                    ml-3 px-3 py-1 rounded-full text-base font-bold
+                    bg-sky-500 text-white
+                  ">
+                    {pendingStudents.length}
+                  </span>
+                </h2>
+
+                {pendingStudents.length === 0 ? (
+                  <p className="text-slate-400">No pending student signups.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {pendingStudents.map(student => (
+                      <StudentCard
+                        key={student.id}
+                        student={student}
+                        onApprove={() => handleUpdateStatus(student.id, 'approved')}
+                        onDeny={() => handleUpdateStatus(student.id, 'denied')}
+                        isLoading={actionLoading === student.id}
+                      />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* --- Processed Students Section --- */}
+              {otherStudents.length > 0 && (
+                <section>
+                  <h2 className="text-3xl font-extrabold text-slate-100 mb-6">
+                    Processed Students
+                  </h2>
+                  <div className="
+                    rounded-xl border border-slate-500 border-opacity-30
+                    bg-slate-700 bg-opacity-20 backdrop-filter backdrop-blur-lg
+                  ">
+                    <ul className="divide-y divide-slate-500 divide-opacity-30">
+                      {otherStudents.map(student => (
+                        <li key={student.id} className="p-4 flex justify-between items-center">
+                          <div>
+                            <p className="font-semibold text-slate-100">{student.name}</p>
+                            <p className="text-sm text-slate-400">{student.email}</p>
+                          </div>
+                          <span className={`
+                            px-3 py-1 rounded-full text-xs font-bold
+                            ${student.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}
+                          `}>
+                            {student.status.charAt(0).toUpperCase() + student.status.slice(1)}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </section>
+              )}
+            </>
+          )}
 
         </div>
       </main>
@@ -177,7 +231,7 @@ const HodDashboard = () => {
 };
 
 // --- Student Card for Approval ---
-const StudentCard = ({ student, onApprove, onDeny }) => {
+const StudentCard = ({ student, onApprove, onDeny, isLoading }) => {
   return (
     <div className="
       p-6 rounded-2xl
@@ -188,29 +242,39 @@ const StudentCard = ({ student, onApprove, onDeny }) => {
       <div className="flex-grow mb-6">
         <h3 className="text-xl font-bold text-slate-100 mb-1">{student.name}</h3>
         <p className="text-sm text-sky-300">{student.email}</p>
+        {student.rollNumber && (
+          <p className="text-xs text-slate-400 mt-1">Roll: {student.rollNumber}</p>
+        )}
+        {student.department && (
+          <p className="text-xs text-slate-400">Dept: {student.department}</p>
+        )}
       </div>
       <div className="flex gap-4">
         <button
           onClick={onApprove}
+          disabled={isLoading}
           className="
             flex-1 flex items-center justify-center px-4 py-2 rounded-lg font-semibold
             bg-emerald-500 text-slate-900
             hover:bg-emerald-400 transition-all duration-300
+            disabled:opacity-50 disabled:cursor-not-allowed
           "
         >
           <CheckIcon />
-          Approve
+          {isLoading ? 'Processing...' : 'Approve'}
         </button>
         <button
           onClick={onDeny}
+          disabled={isLoading}
           className="
             flex-1 flex items-center justify-center px-4 py-2 rounded-lg font-semibold
             bg-slate-600 text-slate-200
             hover:bg-red-500 hover:text-white transition-all duration-300
+            disabled:opacity-50 disabled:cursor-not-allowed
           "
         >
           <XIcon />
-          Deny
+          {isLoading ? 'Processing...' : 'Deny'}
         </button>
       </div>
     </div>

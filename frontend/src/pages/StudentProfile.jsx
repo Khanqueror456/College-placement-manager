@@ -188,8 +188,15 @@ const StudentProfilePage = () => {
                 </div>
                 <div className="bg-slate-700 p-3 rounded-lg">
                   <p className="text-sm text-slate-400">Status</p>
-                  <p className="text-sm font-semibold text-green-400">
-                    {profile?.is_approved ? 'Approved' : 'Pending Approval'}
+                  <p className={`text-sm font-semibold ${
+                    profile?.profile_status === 'APPROVED' ? 'text-green-400' :
+                    profile?.profile_status === 'REJECTED' ? 'text-red-400' :
+                    'text-yellow-400'
+                  }`}>
+                    {profile?.profile_status === 'APPROVED' ? 'Approved' :
+                     profile?.profile_status === 'REJECTED' ? 'Rejected' :
+                     profile?.profile_status === 'PENDING' ? 'Pending Approval' :
+                     'Incomplete'}
                   </p>
                 </div>
               </div>

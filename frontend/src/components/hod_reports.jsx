@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Chart as ChartJS,
@@ -16,32 +16,11 @@ import {
   CheckSquare,
   ArrowLeft
 } from 'lucide-react';
-import { format } from 'date-fns'; // To format the timestamp
+import { format } from 'date-fns';
+import { getHodDashboard } from '../services/hodService';
 
 // --- Register Chart.js components ---
 ChartJS.register(ArcElement, Tooltip, Legend);
-
-// --- Mock Data ---
-const MOCK_DATA = {
-  success: true,
-  report: {
-    academicYear: "2024-25",
-    department: "Computer Science",
-    generatedAt: "2025-11-07T10:30:00.000Z",
-    summary: {
-      totalStudents: 120,
-      placedStudents: 75,
-      placementRate: "68.18%",
-      averagePackage: "8.5 LPA",
-      highestPackage: "25 LPA",
-    },
-    detailedStats: {
-      companiesVisited: 25,
-      offersReceived: 85,
-      multipleOffers: 10,
-    },
-  },
-};
 
 // --- Reusable Stat Card Component ---
 const StatCard = ({ title, value, icon, colorClass }) => {
@@ -92,7 +71,74 @@ const StatCard = ({ title, value, icon, colorClass }) => {
 
 // --- Main HOD Report Component ---
 const HodPlacementReport = () => {
-  const report = MOCK_DATA.report;
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchReportData();
+  }, []);
+
+  const fetchReportData = async () => {
+    try {
+      setLoading(true);
+      const response = await getHodDashboard();
+      const dashboardData = response.dashboard;
+      
+      // Transform dashboard data to report format
+      const transformedReport = {
+        academicYear: "2024-25",
+        department: "Department",
+        generatedAt: new Date().toISOString(),
+        summary: {
+          totalStudents: dashboardData.totalStudents || 0,
+          placedStudents: dashboardData.placedStudents || 0,
+          placementRate: `${dashboardData.placementPercentage || 0}%`,
+          averagePackage: "N/A",
+          highestPackage: "N/A",
+        },
+        detailedStats: {
+          companiesVisited: 0,
+          offersReceived: dashboardData.placedStudents || 0,
+          multipleOffers: 0,
+        },
+      };
+      
+      setReport(transformedReport);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching report data:', err);
+      setError('Failed to load report data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0f172a' }}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sky-500 mx-auto"></div>
+          <p className="mt-4 text-slate-400">Loading report...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0f172a' }}>
+        <div className="bg-red-500/20 border border-red-500 text-red-400 px-6 py-4 rounded-lg">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (!report) {
+    return null;
+  }
+
   const summary = report.summary;
   const detailed = report.detailedStats;
 

@@ -3,6 +3,10 @@ import { asyncHandler } from '../middlewares/errorHandler.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { logInfo, logActivity } from '../middlewares/logger.js';
 import { sendStudentApprovalEmail, sendStudentRejectionEmail } from '../lib/emailService.js';
+import User from '../models/users.js';
+import Drive from '../models/drive.js';
+import Application from '../models/application.js';
+import { Op } from 'sequelize';
 
 /**
  * HOD (Head of Department) Controller
@@ -15,41 +19,35 @@ import { sendStudentApprovalEmail, sendStudentRejectionEmail } from '../lib/emai
 export const getPendingApprovals = asyncHandler(async (req, res, next) => {
   const hodDepartment = req.user.department;
 
-  // TODO: Fetch pending students from database
-  // const pendingStudents = await User.find({
-  //   role: 'student',
-  //   department: hodDepartment,
-  //   isApproved: false
-  // }).select('-password').sort({ createdAt: -1 });
-
-  // Mock pending students
-  const pendingStudents = [
-    {
-      id: 'student_1',
-      name: 'Alice Johnson',
-      email: 'alice@example.com',
-      rollNumber: 'CS2024001',
+  // Fetch pending students from database
+  const pendingStudents = await User.findAll({
+    where: {
+      role: 'STUDENT',
       department: hodDepartment,
-      phone: '9876543210',
-      registeredAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      isApproved: false
+      profile_status: 'PENDING'
     },
-    {
-      id: 'student_2',
-      name: 'Bob Smith',
-      email: 'bob@example.com',
-      rollNumber: 'CS2024002',
-      department: hodDepartment,
-      phone: '9876543211',
-      registeredAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      isApproved: false
-    }
-  ];
+    attributes: ['id', 'name', 'email', 'student_id', 'department', 'phone', 'batch_year', 'cgpa', 'created_at'],
+    order: [['created_at', 'DESC']]
+  });
+
+  // Format the response
+  const formattedStudents = pendingStudents.map(student => ({
+    id: student.id,
+    name: student.name,
+    email: student.email,
+    rollNumber: student.student_id,
+    department: student.department,
+    phone: student.phone,
+    batchYear: student.batch_year,
+    cgpa: student.cgpa,
+    registeredAt: student.created_at,
+    isApproved: false
+  }));
 
   res.status(200).json({
     success: true,
-    count: pendingStudents.length,
-    students: pendingStudents
+    count: formattedStudents.length,
+    students: formattedStudents
   });
 });
 
@@ -60,39 +58,36 @@ export const approveStudent = asyncHandler(async (req, res, next) => {
   const { studentId } = req.params;
   const hodDepartment = req.user.department;
 
-  // TODO: Find student and verify department
-  // const student = await User.findOne({
-  //   _id: studentId,
-  //   role: 'student',
-  //   department: hodDepartment
-  // });
+  // Find student and verify department
+  const student = await User.findOne({
+    where: {
+      id: studentId,
+      role: 'STUDENT',
+      department: hodDepartment
+    }
+  });
 
-  // if (!student) {
-  //   throw new AppError('Student not found or not in your department', 404);
-  // }
+  if (!student) {
+    throw new AppError('Student not found or not in your department', 404);
+  }
 
-  // if (student.isApproved) {
-  //   throw new AppError('Student is already approved', 400);
-  // }
+  if (student.profile_status === 'APPROVED') {
+    throw new AppError('Student is already approved', 400);
+  }
 
-  // TODO: Update student approval status
-  // student.isApproved = true;
-  // student.approvedBy = req.user.id;
-  // student.approvedAt = new Date();
-  // await student.save();
-
-  // Mock student data for email (replace with actual database query)
-  const student = {
-    id: studentId,
-    name: 'Student Name', // TODO: Get from database
-    email: 'student@example.com', // TODO: Get from database
-    department: hodDepartment,
-    rollNumber: 'CS2024001' // TODO: Get from database
-  };
+  // Update student approval status
+  student.profile_status = 'APPROVED';
+  await student.save();
 
   // Send approval email to student
   try {
-    await sendStudentApprovalEmail(student, {
+    await sendStudentApprovalEmail({
+      id: student.id,
+      name: student.name,
+      email: student.email,
+      department: student.department,
+      rollNumber: student.student_id
+    }, {
       name: req.user.name,
       email: req.user.email
     });
@@ -109,6 +104,8 @@ export const approveStudent = asyncHandler(async (req, res, next) => {
     message: 'Student approved successfully and notification email sent',
     student: {
       id: studentId,
+      name: student.name,
+      email: student.email,
       isApproved: true,
       approvedAt: new Date()
     }
@@ -123,38 +120,32 @@ export const rejectStudent = asyncHandler(async (req, res, next) => {
   const { reason } = req.body;
   const hodDepartment = req.user.department;
 
-  // TODO: Find student and verify department
-  // const student = await User.findOne({
-  //   _id: studentId,
-  //   role: 'student',
-  //   department: hodDepartment
-  // });
+  // Find student and verify department
+  const student = await User.findOne({
+    where: {
+      id: studentId,
+      role: 'STUDENT',
+      department: hodDepartment
+    }
+  });
 
-  // if (!student) {
-  //   throw new AppError('Student not found or not in your department', 404);
-  // }
+  if (!student) {
+    throw new AppError('Student not found or not in your department', 404);
+  }
 
-  // TODO: Delete student account or mark as rejected
-  // student.isRejected = true;
-  // student.rejectionReason = reason;
-  // student.rejectedBy = req.user.id;
-  // student.rejectedAt = new Date();
-  // await student.save();
-  // OR
-  // await User.findByIdAndDelete(studentId);
-
-  // Mock student data for email (replace with actual database query)
-  const student = {
-    id: studentId,
-    name: 'Student Name', // TODO: Get from database
-    email: 'student@example.com', // TODO: Get from database
-    department: hodDepartment,
-    rollNumber: 'CS2024002' // TODO: Get from database
-  };
+  // Update student rejection status
+  student.profile_status = 'REJECTED';
+  await student.save();
 
   // Send rejection email to student
   try {
-    await sendStudentRejectionEmail(student, {
+    await sendStudentRejectionEmail({
+      id: student.id,
+      name: student.name,
+      email: student.email,
+      department: student.department,
+      rollNumber: student.student_id
+    }, {
       name: req.user.name,
       email: req.user.email
     }, reason || 'No reason provided');
@@ -179,62 +170,52 @@ export const getDepartmentStudents = asyncHandler(async (req, res, next) => {
   const hodDepartment = req.user.department;
   const { page = 1, limit = 10, search = '' } = req.query;
 
-  // TODO: Build query with pagination and search
-  // const query = {
-  //   role: 'student',
-  //   department: hodDepartment,
-  //   isApproved: true
-  // };
+  // Build query with pagination and search
+  const whereClause = {
+    role: 'STUDENT',
+    department: hodDepartment,
+    profile_status: 'APPROVED'
+  };
 
-  // if (search) {
-  //   query.$or = [
-  //     { name: { $regex: search, $options: 'i' } },
-  //     { email: { $regex: search, $options: 'i' } },
-  //     { rollNumber: { $regex: search, $options: 'i' } }
-  //   ];
-  // }
+  if (search) {
+    whereClause[Op.or] = [
+      { name: { [Op.iLike]: `%${search}%` } },
+      { email: { [Op.iLike]: `%${search}%` } },
+      { student_id: { [Op.iLike]: `%${search}%` } }
+    ];
+  }
 
-  // const students = await User.find(query)
-  //   .select('-password')
-  //   .limit(limit * 1)
-  //   .skip((page - 1) * limit)
-  //   .sort({ createdAt: -1 });
+  const offset = (page - 1) * limit;
+  
+  const { count, rows: students } = await User.findAndCountAll({
+    where: whereClause,
+    attributes: ['id', 'name', 'email', 'student_id', 'department', 'cgpa', 'phone', 'batch_year', 'resume_path'],
+    limit: parseInt(limit),
+    offset: offset,
+    order: [['name', 'ASC']]
+  });
 
-  // const total = await User.countDocuments(query);
-
-  // Mock students
-  const students = [
-    {
-      id: 'student_1',
-      name: 'John Doe',
-      email: 'john@example.com',
-      rollNumber: 'CS2023001',
-      department: hodDepartment,
-      cgpa: 8.5,
-      phone: '9876543210',
-      isApproved: true,
-      resumeUrl: '/uploads/resumes/resume-1.pdf'
-    },
-    {
-      id: 'student_2',
-      name: 'Jane Smith',
-      email: 'jane@example.com',
-      rollNumber: 'CS2023002',
-      department: hodDepartment,
-      cgpa: 9.0,
-      phone: '9876543211',
-      isApproved: true,
-      resumeUrl: '/uploads/resumes/resume-2.pdf'
-    }
-  ];
+  // Format the response
+  const formattedStudents = students.map(student => ({
+    id: student.id,
+    name: student.name,
+    email: student.email,
+    rollNumber: student.student_id,
+    department: student.department,
+    cgpa: student.cgpa,
+    phone: student.phone,
+    batchYear: student.batch_year,
+    isApproved: true,
+    resumeUrl: student.resume_path
+  }));
 
   res.status(200).json({
     success: true,
-    count: students.length,
-    total: 25,
+    count: formattedStudents.length,
+    total: count,
     page: parseInt(page),
-    pages: Math.ceil(25 / limit),
-    students
+    pages: Math.ceil(count / limit),
+    students: formattedStudents
   });
 });
 
@@ -440,48 +421,132 @@ export const getPlacementReport = asyncHandler(async (req, res, next) => {
 export const getDashboard = asyncHandler(async (req, res, next) => {
   const hodDepartment = req.user.department;
 
-  // TODO: Aggregate dashboard data
-  // const pendingApprovals = await User.countDocuments({
-  //   role: 'student',
-  //   department: hodDepartment,
-  //   isApproved: false
-  // });
+  // Aggregate dashboard data from database
+  const pendingApprovals = await User.count({
+    where: {
+      role: 'STUDENT',
+      department: hodDepartment,
+      profile_status: 'PENDING'
+    }
+  });
 
-  // const totalStudents = await User.countDocuments({
-  //   role: 'student',
-  //   department: hodDepartment,
-  //   isApproved: true
-  // });
+  const totalStudents = await User.count({
+    where: {
+      role: 'STUDENT',
+      department: hodDepartment,
+      profile_status: 'APPROVED'
+    }
+  });
 
-  // Mock dashboard data
+  // Get students with placements (applications with status='SELECTED')
+  const placedStudentsCount = await Application.count({
+    where: {
+      status: 'SELECTED'
+    },
+    include: [{
+      model: User,
+      as: 'student',
+      where: {
+        department: hodDepartment,
+        profile_status: 'APPROVED'
+      },
+      attributes: []
+    }],
+    distinct: true,
+    col: 'student_id'
+  });
+
+  const placementPercentage = totalStudents > 0 
+    ? ((placedStudentsCount / totalStudents) * 100).toFixed(2) 
+    : 0;
+
+  // Count active drives
+  const activeDrives = await Drive.count({
+    where: {
+      status: 'ACTIVE',
+      application_deadline: {
+        [Op.gte]: new Date()
+      }
+    }
+  });
+
+  // Get recent approvals (last 5)
+  const recentlyApproved = await User.findAll({
+    where: {
+      role: 'STUDENT',
+      department: hodDepartment,
+      profile_status: 'APPROVED'
+    },
+    attributes: ['name', 'student_id', 'updated_at'],
+    order: [['updated_at', 'DESC']],
+    limit: 5
+  });
+
+  const recentApprovals = recentlyApproved.map(student => ({
+    studentName: student.name,
+    rollNumber: student.student_id,
+    approvedAt: student.updated_at
+  }));
+
+  // Get recent placements (applications with status='SELECTED')
+  const recentPlacementsData = await Application.findAll({
+    where: {
+      status: 'SELECTED'
+    },
+    include: [
+      {
+        model: User,
+        as: 'student',
+        where: {
+          department: hodDepartment
+        },
+        attributes: ['name']
+      },
+      {
+        model: Drive,
+        as: 'drive',
+        attributes: ['company_name', 'package']
+      }
+    ],
+    order: [['last_updated', 'DESC']],
+    limit: 5
+  });
+
+  const recentPlacements = recentPlacementsData.map(app => ({
+    studentName: app.student?.name,
+    company: app.drive?.company_name,
+    package: app.drive?.package,
+    placedAt: app.last_updated
+  }));
+
+  // Get upcoming drives
+  const upcomingDrivesData = await Drive.findAll({
+    where: {
+      status: 'ACTIVE',
+      drive_date: {
+        [Op.gte]: new Date()
+      }
+    },
+    attributes: ['company_name', 'drive_date', 'job_role'],
+    order: [['drive_date', 'ASC']],
+    limit: 5
+  });
+
+  const upcomingDrives = upcomingDrivesData.map(drive => ({
+    company: drive.company_name,
+    date: drive.drive_date,
+    role: drive.job_role
+  }));
+
   const dashboardData = {
-    pendingApprovals: 3,
-    totalStudents: 120,
-    placedStudents: 85,
-    placementPercentage: 70.83,
-    activeDrives: 5,
-    recentApprovals: [
-      {
-        studentName: 'Alice Johnson',
-        rollNumber: 'CS2024001',
-        approvedAt: new Date(Date.now() - 24 * 60 * 60 * 1000)
-      }
-    ],
-    recentPlacements: [
-      {
-        studentName: 'John Doe',
-        company: 'Google',
-        package: '25 LPA',
-        placedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-      }
-    ],
-    upcomingDrives: [
-      {
-        company: 'Amazon',
-        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        role: 'SDE-1'
-      }
-    ]
+    pendingApprovals,
+    totalStudents,
+    placedStudents: placedStudentsCount,
+    placementPercentage: parseFloat(placementPercentage),
+    activeDrives,
+    recentApprovals,
+    recentPlacements,
+    upcomingDrives
   };
 
   res.status(200).json({

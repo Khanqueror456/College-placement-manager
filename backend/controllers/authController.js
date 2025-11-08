@@ -42,7 +42,7 @@ export const register = asyncHandler(async (req, res, next) => {
     batch_year,
     cgpa,
     is_active: true,
-    profile_status: role === 'student' ? 'PENDING' : 'APPROVED'
+    profile_status: (role || 'student').toUpperCase() === 'STUDENT' ? 'PENDING' : 'APPROVED'
   });
 
   // Generate JWT token
@@ -62,7 +62,7 @@ export const register = asyncHandler(async (req, res, next) => {
 
   res.status(201).json({
     success: true,
-    message: role === 'student' 
+    message: (role || 'student').toUpperCase() === 'STUDENT'
       ? 'Registration successful! Your account is pending HOD approval.' 
       : 'Registration successful!',
     token,
