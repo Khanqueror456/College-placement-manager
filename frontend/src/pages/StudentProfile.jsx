@@ -375,19 +375,23 @@ const StudentProfilePage = () => {
             {/* Resume */}
             <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
               <h3 className="text-xl font-bold mb-4">Resume</h3>
-              {profile?.resume_url ? (
-                <div>
+              
+              {/* Resume Info and Actions */}
+              <div className="mb-4">
+                {profile?.resume_path ? (
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <span className="text-4xl">📄</span>
                       <div>
                         <p className="font-medium">Resume uploaded</p>
-                        <p className="text-sm text-slate-400">Last updated: {new Date(profile.resume_uploaded_at || Date.now()).toLocaleDateString()}</p>
+                        <p className="text-sm text-slate-400">
+                          Last updated: {new Date(profile.resume_uploaded_at || profile.last_resume_update || Date.now()).toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
                     <div className="flex gap-2">
                       <a
-                        href={profile.resume_url}
+                        href={profile.resume_url || `http://localhost:3000/uploads/resumes/${profile.resume_path}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-4 py-2 bg-sky-500 hover:bg-sky-600 rounded-lg transition duration-200"
@@ -402,53 +406,15 @@ const StudentProfilePage = () => {
                       </button>
                     </div>
                   </div>
-                  
-                  {/* ATS Score Display */}
-                  {profile.ats_score && (
-                    <div className="mt-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-slate-400 mb-1">ATS Resume Score</p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-3xl font-bold text-sky-400">{profile.ats_score}</span>
-                            <span className="text-slate-400">/100</span>
-                            <span className={`ml-2 px-2 py-1 rounded text-xs font-semibold ${
-                              profile.ats_score >= 80 ? 'bg-green-500/20 text-green-400' :
-                              profile.ats_score >= 60 ? 'bg-yellow-500/20 text-yellow-400' :
-                              'bg-red-500/20 text-red-400'
-                            }`}>
-                              {profile.ats_score >= 80 ? 'Excellent' :
-                               profile.ats_score >= 60 ? 'Good' :
-                               profile.ats_score >= 40 ? 'Average' : 'Needs Improvement'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="text-4xl">
-                          {profile.ats_score >= 80 ? '🌟' :
-                           profile.ats_score >= 60 ? '✨' :
-                           profile.ats_score >= 40 ? '💡' : '📝'}
-                        </div>
-                      </div>
-                      <div className="mt-2">
-                        <div className="w-full bg-slate-600 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full transition-all duration-500 ${
-                              profile.ats_score >= 80 ? 'bg-green-500' :
-                              profile.ats_score >= 60 ? 'bg-yellow-500' :
-                              'bg-red-500'
-                            }`}
-                            style={{ width: `${profile.ats_score}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-2">
-                        💡 Upload a new resume to get an updated ATS analysis with recommendations
-                      </p>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div>
+                ) : (
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-4xl">📄</span>
+                    <p className="text-slate-400">No resume uploaded yet</p>
+                  </div>
+                )}
+                
+                {/* Upload Button - Always visible */}
+                <div className="flex gap-3 items-center">
                   <input
                     type="file"
                     accept=".pdf,.doc,.docx"
@@ -460,9 +426,53 @@ const StudentProfilePage = () => {
                     htmlFor="resume-upload"
                     className="cursor-pointer inline-block px-6 py-3 bg-emerald-500 hover:bg-emerald-600 rounded-lg transition duration-200"
                   >
-                    Upload Resume
+                    {profile?.resume_path ? 'Upload New Resume' : 'Upload Resume'}
                   </label>
-                  <p className="text-sm text-slate-400 mt-2">Accepted formats: PDF, DOC, DOCX (Max 5MB)</p>
+                </div>
+                <p className="text-sm text-slate-400 mt-2">Accepted formats: PDF, DOC, DOCX (Max 5MB)</p>
+              </div>
+                  
+              {/* ATS Score Display */}
+              {profile?.ats_score && (
+                <div className="mt-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-slate-400 mb-1">ATS Resume Score</p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-3xl font-bold text-sky-400">{profile.ats_score}</span>
+                        <span className="text-slate-400">/100</span>
+                        <span className={`ml-2 px-2 py-1 rounded text-xs font-semibold ${
+                          profile.ats_score >= 80 ? 'bg-green-500/20 text-green-400' :
+                          profile.ats_score >= 60 ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-red-500/20 text-red-400'
+                        }`}>
+                          {profile.ats_score >= 80 ? 'Excellent' :
+                           profile.ats_score >= 60 ? 'Good' :
+                           profile.ats_score >= 40 ? 'Average' : 'Needs Improvement'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-4xl">
+                      {profile.ats_score >= 80 ? '🌟' :
+                       profile.ats_score >= 60 ? '✨' :
+                       profile.ats_score >= 40 ? '💡' : '📝'}
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <div className="w-full bg-slate-600 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-500 ${
+                          profile.ats_score >= 80 ? 'bg-green-500' :
+                          profile.ats_score >= 60 ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`}
+                        style={{ width: `${profile.ats_score}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2">
+                    💡 Upload a new resume to get an updated ATS analysis with recommendations
+                  </p>
                 </div>
               )}
             </div>

@@ -35,9 +35,16 @@ export const getProfile = asyncHandler(async (req, res, next) => {
 
   console.log('Student profile found:', student.toJSON());
 
+  // Add resume URL if resume exists
+  const profileData = student.toJSON();
+  if (profileData.resume_path) {
+    profileData.resume_url = getFileUrl(profileData.resume_path, 'resumes');
+    profileData.resume_uploaded_at = profileData.last_resume_update;
+  }
+
   res.status(200).json({
     success: true,
-    profile: student
+    profile: profileData
   });
 });
 
