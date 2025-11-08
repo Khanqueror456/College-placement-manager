@@ -8,6 +8,7 @@ import User from '../models/users.js';
 import Drive from '../models/drive.js';
 import Application from '../models/application.js';
 import Company from '../models/company.js';
+import { calculateATSScoreWithGemini } from '../lib/geminiAtsService.js';
 import { Op } from 'sequelize';
 
 /**
@@ -101,6 +102,7 @@ export const uploadResume = asyncHandler(async (req, res, next) => {
 
   const resumeFilename = req.file.filename;
   const resumeUrl = getFileUrl(resumeFilename, 'resumes');
+  const resumeFilePath = path.join(process.cwd(), 'uploads', 'resumes', resumeFilename);
 
   // Update student resume in database
   const student = await User.findByPk(studentId);
@@ -114,20 +116,46 @@ export const uploadResume = asyncHandler(async (req, res, next) => {
     deleteFile(oldResumePath);
   }
 
-  // Update student with new resume path and timestamp
+  // Calculate ATS score using Gemini AI
+  let atsScore = null;
+  let atsAnalysis = null;
+  try {
+    console.log('🤖 Analyzing resume with Gemini AI...');
+    atsAnalysis = await calculateATSScoreWithGemini(resumeFilePath, req.file.mimetype);
+    atsScore = atsAnalysis.atsScore;
+    console.log(`✅ ATS Score calculated: ${atsScore}/100`);
+  } catch (error) {
+    console.error('⚠️ Error calculating ATS score:', error.message);
+    // Continue without ATS score if Gemini fails
+    atsScore = null;
+  }
+
+  // Update student with new resume path, timestamp, and ATS score
   student.resume_path = resumeFilename;
   student.last_resume_update = new Date();
+  if (atsScore !== null) {
+    student.ats_score = atsScore;
+  }
   await student.save();
 
   // Log activity
-  logActivity('RESUME_UPLOADED', studentId, { filename: req.file.filename });
+  logActivity('RESUME_UPLOADED', studentId, { 
+    filename: req.file.filename,
+    atsScore: atsScore
+  });
 
   res.status(200).json({
     success: true,
     message: 'Resume uploaded successfully',
     resumeUrl,
     filename: resumeFilename,
-    uploadedAt: student.last_resume_update
+    uploadedAt: student.last_resume_update,
+    atsScore: atsScore,
+    atsAnalysis: atsAnalysis ? {
+      rating: atsAnalysis.rating,
+      strengths: atsAnalysis.strengths,
+      recommendations: atsAnalysis.recommendations
+    } : null
   });
 });
 

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import studentService from '../services/studentService';
 import { DEFAULT_AVATAR } from '../assets/defaults';
+import { toast } from 'sonner';
 
 const StudentProfilePage = () => {
   const { user, logout } = useAuth();
@@ -83,7 +84,7 @@ const StudentProfilePage = () => {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      setError('File size must be less than 5MB');
+      toast.error('File size must be less than 5MB');
       return;
     }
 
@@ -92,11 +93,60 @@ const StudentProfilePage = () => {
       setSuccess('');
       setLoading(true);
 
-      await studentService.uploadResume(file);
-      setSuccess('Resume uploaded successfully!');
+      // Show analyzing toast
+      toast.loading('🤖 Analyzing resume with AI...', { id: 'upload-toast' });
+
+      const response = await studentService.uploadResume(file);
+      console.log('📤 Upload response:', response);
+      
+      // Dismiss loading toast
+      toast.dismiss('upload-toast');
+      
+      // Show ATS score feedback if available
+      if (response.atsScore) {
+        const scoreColor = response.atsScore >= 80 ? '🟢' : response.atsScore >= 60 ? '🟡' : '🔴';
+        
+        // Show main success toast
+        toast.success(`${scoreColor} Resume uploaded! ATS Score: ${response.atsScore}/100`, {
+          description: `Rating: ${response.atsAnalysis?.rating || 'N/A'}`,
+          duration: 6000,
+        });
+        
+        // Show strengths if available
+        if (response.atsAnalysis?.strengths?.length > 0) {
+          setTimeout(() => {
+            toast.info('💪 Key Strengths Identified', {
+              description: response.atsAnalysis.strengths.slice(0, 3).join(' • '),
+              duration: 5000,
+            });
+          }, 500);
+        }
+        
+        // Show recommendations if available
+        if (response.atsAnalysis?.recommendations?.length > 0) {
+          setTimeout(() => {
+            toast.info('💡 Recommendations', {
+              description: response.atsAnalysis.recommendations.slice(0, 2).join(' • '),
+              duration: 5000,
+            });
+          }, 1000);
+        }
+        
+        setSuccess(`Resume uploaded with ATS Score: ${response.atsScore}/100`);
+      } else {
+        toast.success('Resume uploaded successfully!', {
+          description: 'ATS analysis pending...',
+        });
+        setSuccess('Resume uploaded successfully! (ATS analysis pending...)');
+      }
+      
       await fetchProfile();
     } catch (err) {
-      setError(err.message || 'Failed to upload resume');
+      console.error('❌ Upload error:', err);
+      toast.dismiss('upload-toast');
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to upload resume';
+      toast.error('Upload Failed', { description: errorMsg });
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -326,30 +376,76 @@ const StudentProfilePage = () => {
             <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
               <h3 className="text-xl font-bold mb-4">Resume</h3>
               {profile?.resume_url ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-4xl">📄</span>
-                    <div>
-                      <p className="font-medium">Resume uploaded</p>
-                      <p className="text-sm text-slate-400">Last updated: {new Date(profile.resume_uploaded_at || Date.now()).toLocaleDateString()}</p>
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <span className="text-4xl">📄</span>
+                      <div>
+                        <p className="font-medium">Resume uploaded</p>
+                        <p className="text-sm text-slate-400">Last updated: {new Date(profile.resume_uploaded_at || Date.now()).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <a
+                        href={profile.resume_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-sky-500 hover:bg-sky-600 rounded-lg transition duration-200"
+                      >
+                        View
+                      </a>
+                      <button
+                        onClick={handleDeleteResume}
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition duration-200"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    <a
-                      href={profile.resume_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-sky-500 hover:bg-sky-600 rounded-lg transition duration-200"
-                    >
-                      View
-                    </a>
-                    <button
-                      onClick={handleDeleteResume}
-                      className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-lg transition duration-200"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  
+                  {/* ATS Score Display */}
+                  {profile.ats_score && (
+                    <div className="mt-4 p-4 bg-slate-700/50 rounded-lg border border-slate-600">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-slate-400 mb-1">ATS Resume Score</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-3xl font-bold text-sky-400">{profile.ats_score}</span>
+                            <span className="text-slate-400">/100</span>
+                            <span className={`ml-2 px-2 py-1 rounded text-xs font-semibold ${
+                              profile.ats_score >= 80 ? 'bg-green-500/20 text-green-400' :
+                              profile.ats_score >= 60 ? 'bg-yellow-500/20 text-yellow-400' :
+                              'bg-red-500/20 text-red-400'
+                            }`}>
+                              {profile.ats_score >= 80 ? 'Excellent' :
+                               profile.ats_score >= 60 ? 'Good' :
+                               profile.ats_score >= 40 ? 'Average' : 'Needs Improvement'}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-4xl">
+                          {profile.ats_score >= 80 ? '🌟' :
+                           profile.ats_score >= 60 ? '✨' :
+                           profile.ats_score >= 40 ? '💡' : '📝'}
+                        </div>
+                      </div>
+                      <div className="mt-2">
+                        <div className="w-full bg-slate-600 rounded-full h-2">
+                          <div 
+                            className={`h-2 rounded-full transition-all duration-500 ${
+                              profile.ats_score >= 80 ? 'bg-green-500' :
+                              profile.ats_score >= 60 ? 'bg-yellow-500' :
+                              'bg-red-500'
+                            }`}
+                            style={{ width: `${profile.ats_score}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-2">
+                        💡 Upload a new resume to get an updated ATS analysis with recommendations
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div>

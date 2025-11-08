@@ -75,7 +75,10 @@ const config = {
   // AI Configuration
   ai: {
     openaiApiKey: process.env.OPENAI_API_KEY,
-    model: process.env.AI_MODEL || 'gpt-4'
+    model: process.env.AI_MODEL || 'gpt-4',
+    // Google Gemini Configuration for ATS Resume Scoring
+    geminiApiKey: process.env.GEMINI_API_KEY,
+    geminiModel: process.env.GEMINI_MODEL || 'gemini-1.5-flash'
   },
 
   // User Roles
