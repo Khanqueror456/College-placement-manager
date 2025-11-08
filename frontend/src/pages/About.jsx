@@ -85,9 +85,10 @@ const TeamCard = ({ name, role, imageUrl }) => (
 const AboutPage = () => {
   // Placeholder team members
   const team = [
-    { name: 'Alex Johnson', role: 'Lead Developer', imageUrl: 'https://placehold.co/128x128/67e8f9/0f172a?text=AJ' },
-    { name: 'Maria Garcia', role: 'Project Manager', imageUrl: 'https://placehold.co/128x128/34d399/1e293b?text=MG' },
-    { name: 'Sam Chen', role: 'UI/UX Designer', imageUrl: 'https://placehold.co/128x128/fde047/1e293b?text=SC' },
+    { name: 'Anuj', role: 'Lead Developer', imageUrl: 'https://placehold.co/128x128/67e8f9/0f172a?text=AJ' },
+    { name: 'Harsh', role: 'Project Manager', imageUrl: 'https://placehold.co/128x128/34d399/1e293b?text=HR' },
+    { name: 'Saad', role: 'UI/UX Designer', imageUrl: 'https://placehold.co/128x128/fde047/1e293b?text=SK' },
+    { name: 'Deepak', role: 'UI/UX Designer', imageUrl: 'https://placehold.co/128x128/fde047/1e293b?text=DP' },
   ];
 
   return (
@@ -134,7 +135,7 @@ const AboutPage = () => {
             <h2 className="text-4xl font-extrabold text-center mb-16 text-slate-100">
               Meet the Team
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-6xl mx-auto">
               {team.map((member) => (
                 <TeamCard 
                   key={member.name}

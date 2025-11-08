@@ -27,7 +27,10 @@ import { validatePlacementDrive } from '../middlewares/validate.js';
 
 const router = express.Router();
 
-// All routes require authentication and TPO role
+// Public routes (no authentication required)
+router.get('/public/stats', getDashboard);
+
+// All routes below require authentication and TPO role
 router.use(authenticate, isTPO);
 
 // Company routes
