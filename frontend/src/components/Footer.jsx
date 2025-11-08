@@ -23,8 +23,8 @@ const Footer = () => (
         </p>
       </div>
       <div className="flex gap-6 mt-6 md:mt-0">
-        <a href="#" className="text-slate-400 hover:text-sky-400 transition-colors"><Linkedin size={24} /></a>
-        <a href="#" className="text-slate-400 hover:text-sky-400 transition-colors"><Github size={24} /></a>
+        <a href="https://linkedin.com/" className="text-slate-400 hover:text-sky-400 transition-colors"><Linkedin size={24} /></a>
+        <a href="https://github.com/Khanqueror456/College-placement-manager" className="text-slate-400 hover:text-sky-400 transition-colors"><Github size={24} /></a>
       </div>
     </div>
   </footer>

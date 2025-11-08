@@ -110,17 +110,18 @@ const StatsSection = () => {
 
   const fetchStats = async () => {
     try {
-      const response = await api.get('/tpo/dashboard');
-      if (response.data) {
+      const response = await api.get('/tpo/public/stats');
+      if (response.data && response.data.dashboard) {
         setStats({
-          totalDrives: response.data.totalDrives || 0,
-          activeDrives: response.data.activeDrives || 0,
-          totalStudents: response.data.totalStudents || 0,
-          placedStudents: response.data.placedStudents || 0
+          totalDrives: response.data.dashboard.totalDrives || 0,
+          activeDrives: response.data.dashboard.activeDrives || 0,
+          totalStudents: response.data.dashboard.totalStudents || 0,
+          placedStudents: response.data.dashboard.placedStudents || 0
         });
       }
     } catch (err) {
-      console.log('Could not fetch stats');
+      console.error('Could not fetch stats:', err);
+      // Keep default values of 0
     }
   };
 
