@@ -167,6 +167,11 @@ export const updateStudentProfile = async (studentId, updates) => {
   return response.data;
 };
 
+export const getStudentResume = async (studentId) => {
+  const response = await api.get(`/tpo/students/${studentId}/resume`);
+  return response.data;
+};
+
 // ========== REPORTS ==========
 
 export const generateExcelReport = async (params = {}) => {

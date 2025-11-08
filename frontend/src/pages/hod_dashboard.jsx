@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getPendingApprovals, approveStudent, rejectStudent } from '../services/hodService';
+import { getPendingApprovals, approveStudent, rejectStudent, getStudentResume } from '../services/hodService';
 
 // --- SVG Icons ---
 const LogoutIcon = () => (
@@ -16,6 +16,11 @@ const CheckIcon = () => (
 const XIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5 mr-1.5">
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+const FileTextIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-1">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
   </svg>
 );
 
@@ -42,6 +47,8 @@ const HodDashboard = ({ onLogout }) => {
         rollNumber: student.rollNumber,
         department: student.department,
         phone: student.phone,
+        resumePath: student.resumePath,
+        resumeUploadedAt: student.resumeUploadedAt,
         status: 'pending'
       }));
       setStudents(formattedStudents);
@@ -232,6 +239,28 @@ const HodDashboard = ({ onLogout }) => {
 
 // --- Student Card for Approval ---
 const StudentCard = ({ student, onApprove, onDeny, isLoading }) => {
+  const [resumeUrl, setResumeUrl] = useState(null);
+  const [loadingResume, setLoadingResume] = useState(false);
+
+  const handleViewResume = async () => {
+    if (!student.resumePath) {
+      alert('No resume uploaded');
+      return;
+    }
+
+    try {
+      setLoadingResume(true);
+      const response = await getStudentResume(student.id);
+      const fullUrl = `http://localhost:3000${response.resume.url}`;
+      window.open(fullUrl, '_blank');
+    } catch (error) {
+      console.error('Error viewing resume:', error);
+      alert('Failed to load resume');
+    } finally {
+      setLoadingResume(false);
+    }
+  };
+
   return (
     <div className="
       p-6 rounded-2xl
@@ -247,6 +276,22 @@ const StudentCard = ({ student, onApprove, onDeny, isLoading }) => {
         )}
         {student.department && (
           <p className="text-xs text-slate-400">Dept: {student.department}</p>
+        )}
+        {student.resumePath && (
+          <button
+            onClick={handleViewResume}
+            disabled={loadingResume}
+            className="
+              mt-3 flex items-center text-xs text-sky-400 hover:text-sky-300
+              transition-colors duration-200
+            "
+          >
+            <FileTextIcon />
+            {loadingResume ? 'Loading...' : 'View Resume'}
+          </button>
+        )}
+        {!student.resumePath && (
+          <p className="text-xs text-slate-500 mt-2 italic">No resume uploaded</p>
         )}
       </div>
       <div className="flex gap-4">

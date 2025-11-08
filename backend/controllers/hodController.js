@@ -26,7 +26,7 @@ export const getPendingApprovals = asyncHandler(async (req, res, next) => {
       department: hodDepartment,
       profile_status: 'PENDING'
     },
-    attributes: ['id', 'name', 'email', 'student_id', 'department', 'phone', 'batch_year', 'cgpa', 'created_at'],
+    attributes: ['id', 'name', 'email', 'student_id', 'department', 'phone', 'batch_year', 'cgpa', 'resume_path', 'last_resume_update', 'created_at'],
     order: [['created_at', 'DESC']]
   });
 
@@ -40,6 +40,8 @@ export const getPendingApprovals = asyncHandler(async (req, res, next) => {
     phone: student.phone,
     batchYear: student.batch_year,
     cgpa: student.cgpa,
+    resumePath: student.resume_path,
+    resumeUploadedAt: student.last_resume_update,
     registeredAt: student.created_at,
     isApproved: false
   }));

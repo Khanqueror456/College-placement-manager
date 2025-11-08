@@ -20,6 +20,7 @@ import {
   generateExcelReport,
   generatePDFReport
 } from '../controllers/tpoController.js';
+import { getResume } from '../controllers/studentController.js';
 import { authenticate, isTPO } from '../middlewares/auth.js';
 import { uploadOfferLetter as uploadOfferLetterMiddleware } from '../middlewares/upload.js';
 import { validatePlacementDrive } from '../middlewares/validate.js';
@@ -48,6 +49,7 @@ router.post('/applications/:applicationId/offer-letter', uploadOfferLetterMiddle
 
 // Student management routes
 router.get('/students/pending', getPendingStudents);
+router.get('/students/:studentId/resume', getResume); // View student resume
 router.get('/students', getAllStudents);
 router.put('/students/:studentId/approve', approveStudent);
 router.put('/students/:studentId', updateStudentProfile);

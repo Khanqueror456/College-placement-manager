@@ -59,6 +59,12 @@ export const getPlacementReports = async () => {
   return response.data;
 };
 
+// Get student resume
+export const getStudentResume = async (studentId) => {
+  const response = await api.get(`/hod/students/${studentId}/resume`);
+  return response.data;
+};
+
 export default {
   getHodDashboard,
   getPendingApprovals,
@@ -68,5 +74,6 @@ export default {
   getDepartmentStudents,
   getStudentDetails,
   verifyStudentProfile,
-  getPlacementReports
+  getPlacementReports,
+  getStudentResume
 };

@@ -26,11 +26,25 @@ import StudentDashboard from './pages/StudentDashboard';
 import StudentProfileNew from './pages/StudentProfile';
 import ViewDrives from './pages/ViewDrives';
 import MyApplications from './pages/MyApplications';
+import { Toaster } from 'sonner';
 
 function App() {
 
   return (
     <AuthProvider>
+      <Toaster 
+        position="top-right" 
+        richColors 
+        closeButton 
+        duration={4000}
+        toastOptions={{
+          style: {
+            background: 'rgba(30, 41, 59, 0.95)',
+            border: '1px solid rgba(148, 163, 184, 0.3)',
+            color: '#e2e8f0',
+          },
+        }}
+      />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/about" element={<AboutPage/>} />

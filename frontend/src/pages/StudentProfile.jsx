@@ -241,15 +241,6 @@ const StudentProfilePage = () => {
             <div className="bg-slate-800 p-6 rounded-xl border border-slate-700">
               <h3 className="text-xl font-bold mb-4">Personal Information</h3>
               
-              {/* DEBUG - Remove this after fixing */}
-              <div className="mb-4 p-3 bg-red-900 bg-opacity-20 rounded text-xs">
-                <strong>DEBUG:</strong> {JSON.stringify({
-                  phone: profile?.phone,
-                  student_id: profile?.student_id,
-                  batch_year: profile?.batch_year,
-                  cgpa: profile?.cgpa
-                })}
-              </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

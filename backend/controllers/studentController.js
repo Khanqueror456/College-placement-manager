@@ -3,6 +3,7 @@ import { asyncHandler } from '../middlewares/errorHandler.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { logInfo, logActivity } from '../middlewares/logger.js';
 import { deleteFile, getFileUrl } from '../middlewares/upload.js';
+import path from 'path';
 import User from '../models/users.js';
 import Drive from '../models/drive.js';
 import Application from '../models/application.js';
@@ -98,24 +99,25 @@ export const uploadResume = asyncHandler(async (req, res, next) => {
     throw new AppError('Please upload a resume file', 400);
   }
 
-  const resumePath = req.file.path;
-  const resumeUrl = getFileUrl(req.file.filename, 'resumes');
+  const resumeFilename = req.file.filename;
+  const resumeUrl = getFileUrl(resumeFilename, 'resumes');
 
-  // TODO: Update student resume in database
-  // const student = await User.findById(studentId);
-  // if (!student) {
-  //   throw new AppError('Student not found', 404);
-  // }
+  // Update student resume in database
+  const student = await User.findByPk(studentId);
+  if (!student) {
+    throw new AppError('Student not found', 404);
+  }
 
   // Delete old resume if exists
-  // if (student.resumeUrl) {
-  //   const oldResumePath = path.join(process.cwd(), student.resumeUrl);
-  //   deleteFile(oldResumePath);
-  // }
+  if (student.resume_path) {
+    const oldResumePath = path.join(process.cwd(), 'uploads', 'resumes', path.basename(student.resume_path));
+    deleteFile(oldResumePath);
+  }
 
-  // student.resumeUrl = resumeUrl;
-  // student.resumeUploadedAt = new Date();
-  // await student.save();
+  // Update student with new resume path and timestamp
+  student.resume_path = resumeFilename;
+  student.last_resume_update = new Date();
+  await student.save();
 
   // Log activity
   logActivity('RESUME_UPLOADED', studentId, { filename: req.file.filename });
@@ -124,7 +126,8 @@ export const uploadResume = asyncHandler(async (req, res, next) => {
     success: true,
     message: 'Resume uploaded successfully',
     resumeUrl,
-    filename: req.file.filename
+    filename: resumeFilename,
+    uploadedAt: student.last_resume_update
   });
 });
 
@@ -134,23 +137,77 @@ export const uploadResume = asyncHandler(async (req, res, next) => {
 export const deleteResume = asyncHandler(async (req, res, next) => {
   const studentId = req.user.id;
 
-  // TODO: Get student from database
-  // const student = await User.findById(studentId);
-  // if (!student || !student.resumeUrl) {
-  //   throw new AppError('No resume found to delete', 404);
-  // }
+  // Get student from database
+  const student = await User.findByPk(studentId);
+  if (!student || !student.resume_path) {
+    throw new AppError('No resume found to delete', 404);
+  }
 
-  // TODO: Delete file and update database
-  // const resumePath = path.join(process.cwd(), student.resumeUrl);
-  // deleteFile(resumePath);
-  // student.resumeUrl = null;
-  // await student.save();
+  // Delete file from disk
+  const resumePath = path.join(process.cwd(), 'uploads', 'resumes', student.resume_path);
+  deleteFile(resumePath);
+  
+  // Update database
+  student.resume_path = null;
+  student.last_resume_update = null;
+  await student.save();
 
   logActivity('RESUME_DELETED', studentId);
 
   res.status(200).json({
     success: true,
     message: 'Resume deleted successfully'
+  });
+});
+
+// @desc    Get resume (own or by ID for HOD/TPO)
+// @route   GET /api/student/resume/:studentId?
+// @access  Private (Student own, HOD, TPO)
+export const getResume = asyncHandler(async (req, res, next) => {
+  const requesterId = req.user.id;
+  const requesterRole = req.user.role;
+  const { studentId } = req.params;
+
+  // Determine which student's resume to fetch
+  const targetStudentId = studentId || requesterId;
+
+  // Authorization check: Students can only view their own, HOD/TPO can view any
+  if (requesterRole === 'STUDENT' && targetStudentId != requesterId) {
+    throw new AppError('You can only view your own resume', 403);
+  }
+
+  // Fetch student
+  const student = await User.findByPk(targetStudentId, {
+    attributes: ['id', 'name', 'email', 'resume_path', 'last_resume_update']
+  });
+
+  if (!student) {
+    throw new AppError('Student not found', 404);
+  }
+
+  if (!student.resume_path) {
+    throw new AppError('No resume uploaded', 404);
+  }
+
+  // Generate URL
+  const resumeUrl = getFileUrl(student.resume_path, 'resumes');
+  const resumePath = path.join(process.cwd(), 'uploads', 'resumes', student.resume_path);
+
+  // Check if file exists
+  const fs = await import('fs');
+  if (!fs.existsSync(resumePath)) {
+    throw new AppError('Resume file not found on server', 404);
+  }
+
+  res.status(200).json({
+    success: true,
+    resume: {
+      studentId: student.id,
+      studentName: student.name,
+      filename: student.resume_path,
+      url: resumeUrl,
+      uploadedAt: student.last_resume_update
+    }
   });
 });
 
@@ -510,6 +567,7 @@ export default {
   updateProfile,
   uploadResume,
   deleteResume,
+  getResume,
   getActiveDrives,
   applyToDrive,
   getMyApplications,

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'sonner';
 
 // --- SVG Icon for Back Button ---
 const BackArrowIcon = () => (
@@ -126,11 +127,23 @@ const LoginScreen = ({ role, onBack}) => {
           password: formData.password
         });
         
-        setSuccess('Login successful! Redirecting...');
+        // Show success toast based on role
+        const userRole = response.user.role;
+        let roleLabel = '';
+        if (userRole === 'STUDENT') {
+          roleLabel = 'Student';
+        } else if (userRole === 'HOD') {
+          roleLabel = 'HOD';
+        } else if (userRole === 'TPO') {
+          roleLabel = 'Placement Officer';
+        }
+        
+        toast.success(`${roleLabel} Login Successful!`, {
+          description: 'Redirecting to your dashboard...',
+        });
         
         // Redirect based on role from server response
         setTimeout(() => {
-          const userRole = response.user.role; // Use the role as-is from server (uppercase)
           console.log('User role from server:', userRole); // Debug log
           
           if (userRole === 'STUDENT') {
@@ -147,13 +160,17 @@ const LoginScreen = ({ role, onBack}) => {
       } else {
         // Sign Up
         if (formData.password !== formData.confirmPassword) {
-          setError('Passwords do not match');
+          toast.error('Passwords do not match', {
+            description: 'Please make sure both passwords are identical.'
+          });
           setLoading(false);
           return;
         }
 
         if (formData.password.length < 6) {
-          setError('Password must be at least 6 characters');
+          toast.error('Password too short', {
+            description: 'Password must be at least 6 characters long.'
+          });
           setLoading(false);
           return;
         }
@@ -170,7 +187,9 @@ const LoginScreen = ({ role, onBack}) => {
 
         const response = await signup(userData);
         
-        setSuccess(response.message || 'Registration successful!');
+        toast.success('Registration Successful!', {
+          description: response.message || 'Your account has been created.'
+        });
         
         // Redirect or switch to login
         setTimeout(() => {
@@ -192,7 +211,32 @@ const LoginScreen = ({ role, onBack}) => {
         }, 2000);
       }
     } catch (err) {
-      setError(err || 'An error occurred. Please try again.');
+      // Show error toast with role-specific message
+      let roleLabel = '';
+      if (role === 'Student') {
+        roleLabel = 'Student';
+      } else if (role === 'HOD') {
+        roleLabel = 'HOD';
+      } else if (role === 'Placement Officer') {
+        roleLabel = 'Placement Officer';
+      }
+      
+      const errorMessage = err || 'An error occurred. Please try again.';
+      
+      // Check if it's a wrong password/credentials error
+      if (errorMessage.toLowerCase().includes('password') || 
+          errorMessage.toLowerCase().includes('credentials') || 
+          errorMessage.toLowerCase().includes('invalid')) {
+        toast.error(`${roleLabel} Login Failed`, {
+          description: 'Invalid email or password. Please check your credentials and try again.',
+        });
+      } else {
+        toast.error(`${roleLabel} ${isLoginMode ? 'Login' : 'Registration'} Failed`, {
+          description: errorMessage,
+        });
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

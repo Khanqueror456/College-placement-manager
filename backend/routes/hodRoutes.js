@@ -10,6 +10,7 @@ import {
   getPlacementReport,
   getDashboard
 } from '../controllers/hodController.js';
+import { getResume } from '../controllers/studentController.js';
 import { authenticate, isHOD } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -25,6 +26,7 @@ router.post('/approvals/:studentId/reject', rejectStudent);
 // Student management routes
 router.get('/students', getDepartmentStudents);
 router.get('/students/:studentId', getStudentDetails);
+router.get('/students/:studentId/resume', getResume); // View student resume
 router.post('/students/:studentId/verify', verifyStudentProfile);
 
 // Statistics and reports

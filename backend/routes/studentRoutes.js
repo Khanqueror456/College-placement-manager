@@ -4,6 +4,7 @@ import {
   updateProfile,
   uploadResume,
   deleteResume,
+  getResume,
   getActiveDrives,
   applyToDrive,
   getMyApplications,
@@ -27,6 +28,7 @@ router.put('/profile', validateStudentProfile, updateProfile);
 
 // Resume routes
 router.post('/resume', uploadResumeMiddleware, uploadResume);
+router.get('/resume/:studentId?', getResume); // Get own or specific student's resume
 router.delete('/resume', deleteResume);
 
 // Drive routes

@@ -49,6 +49,15 @@ const studentService = {
     return response.data;
   },
 
+  /**
+   * Get resume (own or specific student by ID)
+   */
+  getResume: async (studentId = null) => {
+    const endpoint = studentId ? `/student/resume/${studentId}` : '/student/resume';
+    const response = await api.get(endpoint);
+    return response.data;
+  },
+
   // ========== Placement Drives ==========
   
   /**
