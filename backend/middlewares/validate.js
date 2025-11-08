@@ -38,9 +38,7 @@ export const validateRegistration = [
   
   body('password')
     .notEmpty().withMessage('Password is required')
-    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage('Password must contain uppercase, lowercase, number and special character'),
+    .isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   
   body('role')
     .notEmpty().withMessage('Role is required')
@@ -129,8 +127,9 @@ export const validatePlacementDrive = [
     .isArray().withMessage('Allowed departments must be an array'),
   
   body('package')
-    .optional()
-    .isNumeric().withMessage('Package must be a number'),
+    .trim()
+    .notEmpty().withMessage('Package is required')
+    .isLength({ min: 1, max: 100 }).withMessage('Package must be between 1-100 characters'),
   
   body('applicationDeadline')
     .notEmpty().withMessage('Application deadline is required')

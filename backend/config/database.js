@@ -14,14 +14,17 @@ if (config.database.url) {
     dialect: 'postgres',
     logging: config.database.logging,
     pool: config.database.pool,
-    dialectOptions: {},  // No SSL for now
+    dialectOptions: {
+      // Try without SSL first, enable if needed
+      ssl: false
+    },
     define: {
       timestamps: true, // Adds createdAt and updatedAt
       underscored: true, // Use snake_case for column names
       freezeTableName: false, // Use plural table names
     }
   });
-  logger.info('📦 Using DATABASE_URL for connection (SSL disabled)');
+  logger.info('📦 Using DATABASE_URL for PostgreSQL connection (SSL disabled)');
 } else {
   // Use individual connection parameters
   sequelize = new Sequelize(
@@ -68,16 +71,39 @@ export const testConnection = async () => {
  */
 export const syncDatabase = async (force = false, alter = false) => {
   try {
+    // Import models to ensure they're loaded
+    const { User, Company, Drive, Application } = await import('../models/index.js');
+    
     if (force) {
       logger.warn('⚠️  Force sync enabled - All tables will be dropped!');
-      await sequelize.sync({ force: true });
+      
+      // Drop tables in reverse order of dependencies (ignore errors if tables don't exist)
+      try { await Application.drop({ cascade: true }); } catch (e) { logger.info('Application table did not exist'); }
+      try { await Drive.drop({ cascade: true }); } catch (e) { logger.info('Drive table did not exist'); }
+      try { await Company.drop({ cascade: true }); } catch (e) { logger.info('Company table did not exist'); }
+      try { await User.drop({ cascade: true }); } catch (e) { logger.info('User table did not exist'); }
+      
+      // Create tables in order of dependencies
+      await User.sync({ force: true });
+      logger.info('✓ User table created');
+      await Company.sync({ force: true });
+      logger.info('✓ Company table created');
+      await Drive.sync({ force: true });
+      logger.info('✓ Drive table created');
+      await Application.sync({ force: true });
+      logger.info('✓ Application table created');
+      
       logger.info('✅ Database force synced - All tables recreated');
     } else if (alter) {
       logger.info('🔄 Altering database tables...');
       await sequelize.sync({ alter: true });
       logger.info('✅ Database tables altered successfully');
     } else {
-      await sequelize.sync();
+      // Sync models in dependency order
+      await User.sync();
+      await Company.sync();
+      await Drive.sync();
+      await Application.sync();
       logger.info('✅ Database synced successfully');
     }
     return true;

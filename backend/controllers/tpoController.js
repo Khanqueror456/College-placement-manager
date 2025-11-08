@@ -2,7 +2,14 @@ import config from '../config/config.js';
 import { asyncHandler } from '../middlewares/errorHandler.js';
 import { AppError } from '../middlewares/errorHandler.js';
 import { logInfo, logActivity } from '../middlewares/logger.js';
-import { sendApplicationStatusEmail, sendNewDriveNotification } from '../lib/emailService.js';
+import { sendApplicationStatusEmail, sendNewDriveNotification, sendOfferLetterEmail, sendBulkNotification } from '../lib/emailService.js';
+import Company from '../models/company.js';
+import Drive from '../models/drive.js';
+import Application from '../models/application.js';
+import User from '../models/users.js';
+import { Op } from 'sequelize';
+import ExcelJS from 'exceljs';
+import PDFDocument from 'pdfkit';
 
 /**
  * TPO (Training & Placement Officer) Controller
@@ -14,56 +21,106 @@ import { sendApplicationStatusEmail, sendNewDriveNotification } from '../lib/ema
 // @access  Private (TPO)
 export const createDrive = asyncHandler(async (req, res, next) => {
   const {
+    companyId,
     companyName,
     jobRole,
     jobDescription,
     package: packageOffered,
+    jobType,
     eligibilityCriteria,
     applicationDeadline,
     driveDate,
     location,
-    jobType
   } = req.body;
 
-  // TODO: Validate company exists
-  // const company = await Company.findOne({ name: companyName });
-  // if (!company) {
-  //   throw new AppError('Company not found. Please add company first.', 404);
-  // }
+  // Validate company exists
+  const company = await Company.findByPk(companyId);
+  if (!company) {
+    throw new AppError('Company not found. Please add company first.', 404);
+  }
 
-  // TODO: Create drive in database
-  // const drive = await Drive.create({
-  //   company: company._id,
-  //   companyName,
-  //   jobRole,
-  //   jobDescription,
-  //   package: packageOffered,
-  //   eligibilityCriteria: {
-  //     minCGPA: eligibilityCriteria.minCGPA,
-  //     allowedDepartments: eligibilityCriteria.allowedDepartments,
-  //     maxBacklogs: eligibilityCriteria.maxBacklogs,
-  //     graduationYear: eligibilityCriteria.graduationYear
-  //   },
-  //   applicationDeadline,
-  //   driveDate,
-  //   location,
-  //   jobType,
-  //   status: 'active',
-  //   createdBy: req.user.id
-  // });
+  // Create drive in database
+  const drive = await Drive.create({
+    company_id: companyId,
+    company_name: companyName || company.name,
+    job_role: jobRole,
+    job_description: jobDescription,
+    package: packageOffered,
+    job_type: jobType || 'FULL_TIME',
+    min_cgpa: eligibilityCriteria?.minCGPA || 6.0,
+    allowed_departments: eligibilityCriteria?.allowedDepartments || [],
+    max_backlogs: eligibilityCriteria?.maxBacklogs || 0,
+    graduation_years: eligibilityCriteria?.graduationYears || [],
+    application_deadline: applicationDeadline,
+    drive_date: driveDate,
+    location: location,
+    status: 'ACTIVE',
+    created_by: req.user.id
+  });
+
+  // Notify eligible students about new drive
+  try {
+    const whereClause = {
+      role: 'STUDENT',
+      profile_status: 'APPROVED'
+    };
+
+    if (drive.allowed_departments && drive.allowed_departments.length > 0) {
+      whereClause.department = { [Op.in]: drive.allowed_departments };
+    }
+
+    if (drive.min_cgpa) {
+      whereClause.cgpa = { [Op.gte]: drive.min_cgpa };
+    }
+
+    const eligibleStudents = await User.findAll({
+      where: whereClause,
+      attributes: ['id', 'name', 'email']
+    });
+
+    if (eligibleStudents.length > 0) {
+      // Send notification emails in background (don't wait)
+      const emailPromises = eligibleStudents.map(student => 
+        sendNewDriveNotification(student, {
+          companyName: drive.company_name,
+          jobRole: drive.job_role,
+          package: drive.package,
+          deadline: drive.application_deadline,
+          driveDate: drive.drive_date,
+          location: drive.location,
+          minCGPA: drive.min_cgpa
+        })
+      );
+
+      Promise.allSettled(emailPromises).then(results => {
+        const successCount = results.filter(r => r.status === 'fulfilled').length;
+        logInfo('New drive notifications sent', { 
+          driveId: drive.id, 
+          totalEligible: eligibleStudents.length,
+          successCount 
+        });
+      });
+    }
+  } catch (error) {
+    logInfo('Failed to send new drive notifications', { 
+      driveId: drive.id, 
+      error: error.message 
+    });
+    // Don't fail drive creation if email fails
+  }
 
   // Log activity
-  logActivity('DRIVE_CREATED', req.user.id, { companyName, jobRole });
+  logActivity('DRIVE_CREATED', req.user.id, { companyName, jobRole, driveId: drive.id });
 
   res.status(201).json({
     success: true,
-    message: 'Placement drive created successfully',
+    message: 'Placement drive created successfully and notifications sent to eligible students',
     drive: {
-      id: `drive_${Date.now()}`,
-      companyName,
-      jobRole,
-      status: 'active',
-      createdAt: new Date()
+      id: drive.id,
+      companyName: drive.company_name,
+      jobRole: drive.job_role,
+      status: drive.status,
+      createdAt: drive.createdAt
     }
   });
 });
@@ -75,28 +132,43 @@ export const updateDrive = asyncHandler(async (req, res, next) => {
   const { driveId } = req.params;
   const updates = req.body;
 
-  // TODO: Find and update drive
-  // const drive = await Drive.findById(driveId);
-  // if (!drive) {
-  //   throw new AppError('Placement drive not found', 404);
-  // }
+  // Find and update drive
+  const drive = await Drive.findByPk(driveId);
+  if (!drive) {
+    throw new AppError('Placement drive not found', 404);
+  }
 
-  // if (drive.status === 'closed') {
-  //   throw new AppError('Cannot update closed drive', 400);
-  // }
+  if (drive.status === 'CLOSED') {
+    throw new AppError('Cannot update closed drive', 400);
+  }
 
-  // const updatedDrive = await Drive.findByIdAndUpdate(
-  //   driveId,
-  //   updates,
-  //   { new: true, runValidators: true }
-  // );
+  // Update drive fields
+  await drive.update({
+    job_role: updates.jobRole || drive.job_role,
+    job_description: updates.jobDescription || drive.job_description,
+    package: updates.package || drive.package,
+    min_cgpa: updates.eligibilityCriteria?.minCGPA || drive.min_cgpa,
+    allowed_departments: updates.eligibilityCriteria?.allowedDepartments || drive.allowed_departments,
+    max_backlogs: updates.eligibilityCriteria?.maxBacklogs || drive.max_backlogs,
+    graduation_years: updates.eligibilityCriteria?.graduationYears || drive.graduation_years,
+    application_deadline: updates.applicationDeadline || drive.application_deadline,
+    drive_date: updates.driveDate || drive.drive_date,
+    location: updates.location || drive.location,
+    status: updates.status || drive.status,
+  });
 
   logActivity('DRIVE_UPDATED', req.user.id, { driveId });
 
   res.status(200).json({
     success: true,
     message: 'Drive updated successfully',
-    drive: updates
+    drive: {
+      id: drive.id,
+      companyName: drive.company_name,
+      jobRole: drive.job_role,
+      status: drive.status,
+      updatedAt: drive.updatedAt
+    }
   });
 });
 
@@ -106,18 +178,19 @@ export const updateDrive = asyncHandler(async (req, res, next) => {
 export const deleteDrive = asyncHandler(async (req, res, next) => {
   const { driveId } = req.params;
 
-  // TODO: Check if drive has applications
-  // const drive = await Drive.findById(driveId);
-  // if (!drive) {
-  //   throw new AppError('Placement drive not found', 404);
-  // }
+  // Check if drive exists
+  const drive = await Drive.findByPk(driveId);
+  if (!drive) {
+    throw new AppError('Placement drive not found', 404);
+  }
 
-  // const applicationCount = await Application.countDocuments({ drive: driveId });
-  // if (applicationCount > 0) {
-  //   throw new AppError('Cannot delete drive with existing applications', 400);
-  // }
+  // Check if drive has applications
+  const applicationCount = await Application.count({ where: { drive_id: driveId } });
+  if (applicationCount > 0) {
+    throw new AppError('Cannot delete drive with existing applications', 400);
+  }
 
-  // await Drive.findByIdAndDelete(driveId);
+  await drive.destroy();
 
   logActivity('DRIVE_DELETED', req.user.id, { driveId });
 
@@ -133,52 +206,55 @@ export const deleteDrive = asyncHandler(async (req, res, next) => {
 export const getAllDrives = asyncHandler(async (req, res, next) => {
   const { status, page = 1, limit = 10, search = '' } = req.query;
 
-  // TODO: Build query
-  // const query = {};
-  // if (status) query.status = status;
-  // if (search) {
-  //   query.$or = [
-  //     { companyName: { $regex: search, $options: 'i' } },
-  //     { jobRole: { $regex: search, $options: 'i' } }
-  //   ];
-  // }
+  // Build query
+  const where = {};
+  if (status) where.status = status.toUpperCase();
+  if (search) {
+    where[Op.or] = [
+      { company_name: { [Op.like]: `%${search}%` } },
+      { job_role: { [Op.like]: `%${search}%` } }
+    ];
+  }
 
-  // const drives = await Drive.find(query)
-  //   .limit(limit * 1)
-  //   .skip((page - 1) * limit)
-  //   .sort({ createdAt: -1 });
+  const offset = (page - 1) * limit;
 
-  // const total = await Drive.countDocuments(query);
+  const { count, rows: drives } = await Drive.findAndCountAll({
+    where,
+    limit: parseInt(limit),
+    offset: offset,
+    order: [['createdAt', 'DESC']],
+    include: [
+      {
+        model: Company,
+        as: 'company',
+        attributes: ['id', 'name', 'industry']
+      }
+    ]
+  });
 
-  // Mock drives
-  const drives = [
-    {
-      id: 'drive_1',
-      companyName: 'Google',
-      jobRole: 'Software Engineer',
-      package: '25 LPA',
-      status: 'active',
-      applicationsCount: 45,
-      createdAt: new Date()
-    },
-    {
-      id: 'drive_2',
-      companyName: 'Microsoft',
-      jobRole: 'SDE Intern',
-      package: '80k/month',
-      status: 'active',
-      applicationsCount: 62,
-      createdAt: new Date()
-    }
-  ];
+  // Get application counts for each drive
+  const drivesWithCounts = await Promise.all(drives.map(async (drive) => {
+    const applicationsCount = await Application.count({ where: { drive_id: drive.id } });
+    return {
+      id: drive.id,
+      companyName: drive.company_name,
+      jobRole: drive.job_role,
+      package: drive.package,
+      status: drive.status,
+      applicationsCount,
+      driveDate: drive.drive_date,
+      applicationDeadline: drive.application_deadline,
+      createdAt: drive.createdAt
+    };
+  }));
 
   res.status(200).json({
     success: true,
-    count: drives.length,
-    total: 15,
+    count: drivesWithCounts.length,
+    total: count,
     page: parseInt(page),
-    pages: Math.ceil(15 / limit),
-    drives
+    pages: Math.ceil(count / limit),
+    drives: drivesWithCounts
   });
 });
 
@@ -188,16 +264,16 @@ export const getAllDrives = asyncHandler(async (req, res, next) => {
 export const closeDrive = asyncHandler(async (req, res, next) => {
   const { driveId } = req.params;
 
-  // TODO: Update drive status
-  // const drive = await Drive.findById(driveId);
-  // if (!drive) {
-  //   throw new AppError('Drive not found', 404);
-  // }
+  // Update drive status
+  const drive = await Drive.findByPk(driveId);
+  if (!drive) {
+    throw new AppError('Drive not found', 404);
+  }
 
-  // drive.status = 'closed';
-  // drive.closedAt = new Date();
-  // drive.closedBy = req.user.id;
-  // await drive.save();
+  drive.status = 'CLOSED';
+  drive.closed_at = new Date();
+  drive.closed_by = req.user.id;
+  await drive.save();
 
   logActivity('DRIVE_CLOSED', req.user.id, { driveId });
 
@@ -222,24 +298,24 @@ export const addCompany = asyncHandler(async (req, res, next) => {
     contactPhone
   } = req.body;
 
-  // TODO: Check if company already exists
-  // const existingCompany = await Company.findOne({ name });
-  // if (existingCompany) {
-  //   throw new AppError('Company already exists', 400);
-  // }
+  // Check if company already exists
+  const existingCompany = await Company.findOne({ where: { name } });
+  if (existingCompany) {
+    throw new AppError('Company already exists', 400);
+  }
 
-  // TODO: Create company
-  // const company = await Company.create({
-  //   name,
-  //   description,
-  //   website,
-  //   industry,
-  //   location,
-  //   contactPerson,
-  //   contactEmail,
-  //   contactPhone,
-  //   addedBy: req.user.id
-  // });
+  // Create company
+  const company = await Company.create({
+    name,
+    description,
+    website,
+    industry,
+    location,
+    contact_person: contactPerson,
+    contact_email: contactEmail,
+    contact_phone: contactPhone,
+    added_by: req.user.id
+  });
 
   logActivity('COMPANY_ADDED', req.user.id, { companyName: name });
 
@@ -247,10 +323,11 @@ export const addCompany = asyncHandler(async (req, res, next) => {
     success: true,
     message: 'Company added successfully',
     company: {
-      id: `company_${Date.now()}`,
-      name,
-      website,
-      createdAt: new Date()
+      id: company.id,
+      name: company.name,
+      website: company.website,
+      industry: company.industry,
+      createdAt: company.createdAt
     }
   });
 });
@@ -259,31 +336,31 @@ export const addCompany = asyncHandler(async (req, res, next) => {
 // @route   GET /api/tpo/companies
 // @access  Private (TPO)
 export const getAllCompanies = asyncHandler(async (req, res, next) => {
-  // TODO: Fetch companies from database
-  // const companies = await Company.find().sort({ name: 1 });
+  // Fetch companies from database
+  const companies = await Company.findAll({
+    where: { is_active: true },
+    order: [['name', 'ASC']],
+    attributes: ['id', 'name', 'industry', 'website', 'location', 'createdAt']
+  });
 
-  // Mock companies
-  const companies = [
-    {
-      id: 'company_1',
-      name: 'Google',
-      industry: 'Technology',
-      website: 'https://google.com',
-      totalDrives: 5
-    },
-    {
-      id: 'company_2',
-      name: 'Microsoft',
-      industry: 'Technology',
-      website: 'https://microsoft.com',
-      totalDrives: 8
-    }
-  ];
+  // Get drive counts for each company
+  const companiesWithDrives = await Promise.all(companies.map(async (company) => {
+    const totalDrives = await Drive.count({ where: { company_id: company.id } });
+    return {
+      id: company.id,
+      name: company.name,
+      industry: company.industry,
+      website: company.website,
+      location: company.location,
+      totalDrives,
+      createdAt: company.createdAt
+    };
+  }));
 
   res.status(200).json({
     success: true,
-    count: companies.length,
-    companies
+    count: companiesWithDrives.length,
+    companies: companiesWithDrives
   });
 });
 
@@ -294,54 +371,51 @@ export const getApplicationsForDrive = asyncHandler(async (req, res, next) => {
   const { driveId } = req.params;
   const { status, page = 1, limit = 20 } = req.query;
 
-  // TODO: Fetch applications with filters
-  // const query = { drive: driveId };
-  // if (status) query.status = status;
+  // Build query
+  const where = { drive_id: driveId };
+  if (status) where.status = status.toUpperCase();
 
-  // const applications = await Application.find(query)
-  //   .populate('student', 'name email rollNumber cgpa resumeUrl')
-  //   .limit(limit * 1)
-  //   .skip((page - 1) * limit)
-  //   .sort({ appliedAt: -1 });
+  const offset = (page - 1) * limit;
 
-  // const total = await Application.countDocuments(query);
+  const { count, rows: applications } = await Application.findAndCountAll({
+    where,
+    limit: parseInt(limit),
+    offset: offset,
+    order: [['applied_at', 'DESC']],
+    include: [
+      {
+        model: User,
+        as: 'student',
+        attributes: ['id', 'name', 'email', 'student_id', 'cgpa', 'resume_path', 'department', 'batch_year']
+      }
+    ]
+  });
 
-  // Mock applications
-  const applications = [
-    {
-      id: 'app_1',
-      student: {
-        id: 'student_1',
-        name: 'John Doe',
-        email: 'john@example.com',
-        rollNumber: 'CS2023001',
-        cgpa: 8.5,
-        resumeUrl: '/uploads/resumes/resume-1.pdf'
-      },
-      status: 'applied',
-      appliedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+  const formattedApplications = applications.map(app => ({
+    id: app.id,
+    student: {
+      id: app.student.id,
+      name: app.student.name,
+      email: app.student.email,
+      rollNumber: app.student.student_id,
+      cgpa: app.student.cgpa,
+      department: app.student.department,
+      batchYear: app.student.batch_year,
+      resumeUrl: app.student.resume_path
     },
-    {
-      id: 'app_2',
-      student: {
-        id: 'student_2',
-        name: 'Jane Smith',
-        email: 'jane@example.com',
-        rollNumber: 'CS2023002',
-        cgpa: 9.0,
-        resumeUrl: '/uploads/resumes/resume-2.pdf'
-      },
-      status: 'shortlisted',
-      appliedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-    }
-  ];
+    status: app.status,
+    currentRound: app.current_round,
+    feedback: app.feedback,
+    offerLetterPath: app.offer_letter_path,
+    appliedAt: app.applied_at
+  }));
 
   res.status(200).json({
     success: true,
-    count: applications.length,
-    total: 45,
+    count: formattedApplications.length,
+    total: count,
     page: parseInt(page),
-    applications
+    applications: formattedApplications
   });
 });
 
@@ -352,46 +426,53 @@ export const updateApplicationStatus = asyncHandler(async (req, res, next) => {
   const { applicationId } = req.params;
   const { status, round, feedback } = req.body;
 
-  const validStatuses = ['applied', 'shortlisted', 'selected', 'rejected', 'on-hold'];
-  if (!validStatuses.includes(status)) {
+  const validStatuses = ['APPLIED', 'SHORTLISTED', 'SELECTED', 'REJECTED', 'ON_HOLD'];
+  if (!validStatuses.includes(status.toUpperCase())) {
     throw new AppError('Invalid status', 400);
   }
 
-  // TODO: Update application
-  // const application = await Application.findById(applicationId)
-  //   .populate('student', 'email name')
-  //   .populate('drive', 'companyName jobRole');
+  // Update application
+  const application = await Application.findByPk(applicationId, {
+    include: [
+      {
+        model: User,
+        as: 'student',
+        attributes: ['id', 'name', 'email']
+      },
+      {
+        model: Drive,
+        as: 'drive',
+        attributes: ['id', 'company_name', 'job_role']
+      }
+    ]
+  });
 
-  // if (!application) {
-  //   throw new AppError('Application not found', 404);
-  // }
+  if (!application) {
+    throw new AppError('Application not found', 404);
+  }
 
-  // application.status = status;
-  // application.currentRound = round;
-  // application.feedback = feedback;
-  // application.lastUpdated = new Date();
-  // await application.save();
-
-  // Mock data for email (replace with actual database queries)
-  const student = {
-    id: 'student_1',
-    name: 'Student Name', // TODO: Get from database
-    email: 'student@example.com' // TODO: Get from database
-  };
-
-  const application = {
-    id: applicationId,
-    companyName: 'Company Name', // TODO: Get from database
-    jobRole: 'Job Role', // TODO: Get from database
-    status: status
-  };
+  application.status = status.toUpperCase();
+  application.current_round = round;
+  application.feedback = feedback;
+  application.last_updated = new Date();
+  await application.save();
 
   // Send email notification to student
   try {
-    await sendApplicationStatusEmail(student, application, status, feedback);
+    await sendApplicationStatusEmail(
+      application.student, 
+      {
+        id: application.id,
+        companyName: application.drive.company_name,
+        jobRole: application.drive.job_role,
+        status: application.status
+      }, 
+      status, 
+      feedback
+    );
     logInfo('Application status email sent successfully', { 
       applicationId, 
-      studentEmail: student.email, 
+      studentEmail: application.student.email, 
       status 
     });
   } catch (error) {
@@ -408,10 +489,10 @@ export const updateApplicationStatus = asyncHandler(async (req, res, next) => {
     success: true,
     message: 'Application status updated successfully and notification email sent',
     application: {
-      id: applicationId,
-      status,
-      round,
-      updatedAt: new Date()
+      id: application.id,
+      status: application.status,
+      round: application.current_round,
+      updatedAt: application.last_updated
     }
   });
 });
@@ -420,41 +501,58 @@ export const updateApplicationStatus = asyncHandler(async (req, res, next) => {
 // @route   PUT /api/tpo/applications/bulk-update
 // @access  Private (TPO)
 export const bulkUpdateStatus = asyncHandler(async (req, res, next) => {
-  const { applicationIds, status, round } = req.body;
+  const { applicationIds, status, round, comments } = req.body;
 
   if (!Array.isArray(applicationIds) || applicationIds.length === 0) {
     throw new AppError('Please provide application IDs', 400);
   }
 
-  // TODO: Bulk update applications
-  // const result = await Application.updateMany(
-  //   { _id: { $in: applicationIds } },
-  //   { status, currentRound: round, lastUpdated: new Date() }
-  // );
+  // Bulk update applications
+  await Application.update(
+    { 
+      status: status.toUpperCase(), 
+      current_round: round, 
+      feedback: comments,
+      last_updated: new Date() 
+    },
+    { where: { id: { [Op.in]: applicationIds } } }
+  );
 
-  // Send bulk emails to all students (mock data - replace with actual database queries)
+  // Send bulk emails to all students
   let emailsSent = 0;
-  const emailPromises = applicationIds.map(async (appId) => {
+  const applications = await Application.findAll({
+    where: { id: { [Op.in]: applicationIds } },
+    include: [
+      {
+        model: User,
+        as: 'student',
+        attributes: ['id', 'name', 'email']
+      },
+      {
+        model: Drive,
+        as: 'drive',
+        attributes: ['company_name', 'job_role']
+      }
+    ]
+  });
+
+  const emailPromises = applications.map(async (app) => {
     try {
-      // Mock data for each application (replace with actual database queries)
-      const student = {
-        id: `student_${appId}`,
-        name: 'Student Name',
-        email: 'student@example.com'
-      };
-
-      const application = {
-        id: appId,
-        companyName: 'Company Name',
-        jobRole: 'Job Role',
-        status: status
-      };
-
-      await sendApplicationStatusEmail(student, application, status, req.body.comments || '');
+      await sendApplicationStatusEmail(
+        app.student, 
+        {
+          id: app.id,
+          companyName: app.drive.company_name,
+          jobRole: app.drive.job_role,
+          status: status
+        }, 
+        status, 
+        comments || ''
+      );
       emailsSent++;
       return true;
     } catch (error) {
-      logInfo('Failed to send bulk email', { applicationId: appId, error: error.message });
+      logInfo('Failed to send bulk email', { applicationId: app.id, error: error.message });
       return false;
     }
   });
@@ -487,36 +585,64 @@ export const uploadOfferLetter = asyncHandler(async (req, res, next) => {
   }
 
   const offerLetterUrl = `/uploads/offers/${req.file.filename}`;
+  const offerLetterPath = req.file.path;
 
-  // TODO: Update application with offer letter
-  // const application = await Application.findById(applicationId)
-  //   .populate('student', 'email name');
+  // Update application with offer letter
+  const application = await Application.findByPk(applicationId, {
+    include: [
+      {
+        model: User,
+        as: 'student',
+        attributes: ['id', 'name', 'email']
+      },
+      {
+        model: Drive,
+        as: 'drive',
+        attributes: ['company_name', 'job_role', 'package']
+      }
+    ]
+  });
 
-  // if (!application) {
-  //   throw new AppError('Application not found', 404);
-  // }
+  if (!application) {
+    throw new AppError('Application not found', 404);
+  }
 
-  // if (application.status !== 'selected') {
-  //   throw new AppError('Can only upload offer letter for selected candidates', 400);
-  // }
+  if (application.status !== 'SELECTED') {
+    throw new AppError('Can only upload offer letter for selected candidates', 400);
+  }
 
-  // application.offerLetterUrl = offerLetterUrl;
-  // application.offerLetterUploadedAt = new Date();
-  // await application.save();
+  application.offer_letter_path = offerLetterUrl;
+  application.offer_letter_uploaded_at = new Date();
+  await application.save();
 
-  // TODO: Send email with offer letter
-  // await sendEmail({
-  //   email: application.student.email,
-  //   subject: 'Congratulations! Offer Letter',
-  //   message: 'Your offer letter has been uploaded. Please download from portal.',
-  //   attachments: [{ path: req.file.path }]
-  // });
+  // Send email with offer letter attachment
+  try {
+    await sendOfferLetterEmail(
+      application.student,
+      {
+        companyName: application.drive.company_name,
+        jobRole: application.drive.job_role,
+        package: application.drive.package
+      },
+      offerLetterPath
+    );
+    logInfo('Offer letter email sent successfully', { 
+      applicationId, 
+      studentEmail: application.student.email 
+    });
+  } catch (error) {
+    logInfo('Failed to send offer letter email', { 
+      applicationId, 
+      error: error.message 
+    });
+    // Don't fail the upload if email fails
+  }
 
   logActivity('OFFER_LETTER_UPLOADED', req.user.id, { applicationId });
 
   res.status(200).json({
     success: true,
-    message: 'Offer letter uploaded successfully',
+    message: 'Offer letter uploaded successfully and email sent to student',
     offerLetterUrl
   });
 });
@@ -525,38 +651,130 @@ export const uploadOfferLetter = asyncHandler(async (req, res, next) => {
 // @route   POST /api/tpo/notifications/send
 // @access  Private (TPO)
 export const sendNotification = asyncHandler(async (req, res, next) => {
-  const { recipients, subject, message, type } = req.body;
+  const { type, department, driveId, subject, message, recipients: customRecipients } = req.body;
 
-  // recipients can be: 'all', 'department', 'drive-applicants', or specific emails
+  if (!subject || !message) {
+    throw new AppError('Subject and message are required', 400);
+  }
+
+  let emails = [];
+  let driveDetails = null;
+
+  // Build recipient list based on type
+  if (type === 'all-students') {
+    const students = await User.findAll({ 
+      where: { role: 'STUDENT', profile_status: 'APPROVED' },
+      attributes: ['email']
+    });
+    emails = students.map(s => s.email);
+  } else if (type === 'department') {
+    if (!department) {
+      throw new AppError('Department is required for department notifications', 400);
+    }
+    const students = await User.findAll({ 
+      where: { 
+        role: 'STUDENT', 
+        department: department,
+        profile_status: 'APPROVED'
+      },
+      attributes: ['email']
+    });
+    emails = students.map(s => s.email);
+  } else if (type === 'drive-applicants') {
+    if (!driveId) {
+      throw new AppError('Drive ID is required for drive applicant notifications', 400);
+    }
+    
+    // Get drive details
+    const drive = await Drive.findByPk(driveId);
+    if (drive) {
+      driveDetails = {
+        companyName: drive.company_name,
+        jobRole: drive.job_role,
+        package: drive.package,
+        deadline: drive.application_deadline
+      };
+    }
+
+    // Get all students who applied to this drive
+    const applications = await Application.findAll({
+      where: { drive_id: driveId },
+      include: [
+        {
+          model: User,
+          as: 'student',
+          attributes: ['email']
+        }
+      ]
+    });
+    emails = applications.map(app => app.student.email);
+  } else if (type === 'eligible-students' && driveId) {
+    // Notify students eligible for a specific drive
+    const drive = await Drive.findByPk(driveId);
+    if (!drive) {
+      throw new AppError('Drive not found', 404);
+    }
+
+    driveDetails = {
+      companyName: drive.company_name,
+      jobRole: drive.job_role,
+      package: drive.package,
+      deadline: drive.application_deadline
+    };
+
+    // Find eligible students based on drive criteria
+    const whereClause = {
+      role: 'STUDENT',
+      profile_status: 'APPROVED'
+    };
+
+    if (drive.allowed_departments && drive.allowed_departments.length > 0) {
+      whereClause.department = { [Op.in]: drive.allowed_departments };
+    }
+
+    if (drive.min_cgpa) {
+      whereClause.cgpa = { [Op.gte]: drive.min_cgpa };
+    }
+
+    const students = await User.findAll({ 
+      where: whereClause,
+      attributes: ['email']
+    });
+    emails = students.map(s => s.email);
+  } else if (type === 'custom' && Array.isArray(customRecipients)) {
+    emails = customRecipients;
+  } else {
+    throw new AppError('Invalid notification type or missing parameters', 400);
+  }
+
+  if (emails.length === 0) {
+    return res.status(200).json({
+      success: true,
+      message: 'No recipients found matching the criteria',
+      recipientCount: 0
+    });
+  }
+
+  // Send bulk emails
+  const results = await sendBulkNotification(emails, subject, message, driveDetails);
   
-  // TODO: Build recipient list based on type
-  // let emails = [];
-  // if (type === 'all-students') {
-  //   const students = await User.find({ role: 'student' }).select('email');
-  //   emails = students.map(s => s.email);
-  // } else if (type === 'department') {
-  //   const students = await User.find({ 
-  //     role: 'student', 
-  //     department: recipients.department 
-  //   }).select('email');
-  //   emails = students.map(s => s.email);
-  // } else if (Array.isArray(recipients)) {
-  //   emails = recipients;
-  // }
+  const successCount = results.filter(r => r.success).length;
+  const failureCount = results.filter(r => !r.success).length;
 
-  // TODO: Send bulk emails
-  // await sendBulkEmail({
-  //   emails,
-  //   subject,
-  //   message
-  // });
-
-  logActivity('NOTIFICATION_SENT', req.user.id, { type, count: 0 });
+  logActivity('NOTIFICATION_SENT', req.user.id, { 
+    type, 
+    totalRecipients: emails.length,
+    successCount,
+    failureCount
+  });
 
   res.status(200).json({
     success: true,
-    message: `Notification sent to recipients`,
-    recipientCount: 0
+    message: `Notification sent successfully`,
+    recipientCount: emails.length,
+    successCount,
+    failureCount,
+    details: failureCount > 0 ? results.filter(r => !r.success) : undefined
   });
 });
 
@@ -564,52 +782,406 @@ export const sendNotification = asyncHandler(async (req, res, next) => {
 // @route   GET /api/tpo/dashboard
 // @access  Private (TPO)
 export const getDashboard = asyncHandler(async (req, res, next) => {
-  // TODO: Aggregate dashboard statistics
-  // const totalDrives = await Drive.countDocuments();
-  // const activeDrives = await Drive.countDocuments({ status: 'active' });
-  // const totalApplications = await Application.countDocuments();
-  // const totalStudents = await User.countDocuments({ role: 'student', isApproved: true });
-  // const placedStudents = await Application.countDocuments({ status: 'selected' });
+  // Aggregate dashboard statistics
+  const totalDrives = await Drive.count();
+  const activeDrives = await Drive.count({ where: { status: 'ACTIVE' } });
+  const closedDrives = await Drive.count({ where: { status: 'CLOSED' } });
+  const totalApplications = await Application.count();
+  const totalStudents = await User.count({ where: { role: 'STUDENT' } });
+  const approvedStudents = await User.count({ where: { role: 'STUDENT', profile_status: 'APPROVED' } });
+  const pendingApprovals = await User.count({ where: { role: 'STUDENT', profile_status: 'PENDING' } });
+  const placedStudents = await Application.count({ where: { status: 'SELECTED' } });
+  const totalCompanies = await Company.count({ where: { is_active: true } });
 
-  // Mock dashboard data
+  const placementPercentage = approvedStudents > 0 
+    ? ((placedStudents / approvedStudents) * 100).toFixed(2) 
+    : 0;
+
+  // Get recent drives
+  const recentDrives = await Drive.findAll({
+    limit: 5,
+    order: [['createdAt', 'DESC']],
+    attributes: ['id', 'company_name', 'job_role', 'status', 'createdAt']
+  });
+
+  const drivesWithCounts = await Promise.all(recentDrives.map(async (drive) => {
+    const applicationsCount = await Application.count({ where: { drive_id: drive.id } });
+    return {
+      id: drive.id,
+      companyName: drive.company_name,
+      jobRole: drive.job_role,
+      applicationsCount,
+      status: drive.status
+    };
+  }));
+
+  // Get recent applications
+  const recentApplications = await Application.findAll({
+    limit: 5,
+    order: [['applied_at', 'DESC']],
+    include: [
+      {
+        model: User,
+        as: 'student',
+        attributes: ['name']
+      },
+      {
+        model: Drive,
+        as: 'drive',
+        attributes: ['company_name']
+      }
+    ]
+  });
+
+  const formattedApplications = recentApplications.map(app => ({
+    studentName: app.student.name,
+    companyName: app.drive.company_name,
+    status: app.status,
+    appliedAt: app.applied_at
+  }));
+
   const dashboardData = {
-    totalDrives: 25,
-    activeDrives: 8,
-    closedDrives: 17,
-    totalApplications: 450,
-    totalStudents: 300,
-    approvedStudents: 285,
-    pendingApprovals: 15,
-    placedStudents: 180,
-    placementPercentage: 63.16,
-    totalCompanies: 35,
-    recentDrives: [
-      {
-        id: 'drive_1',
-        companyName: 'Google',
-        jobRole: 'SDE',
-        applicationsCount: 45,
-        status: 'active'
-      }
-    ],
-    recentApplications: [
-      {
-        studentName: 'John Doe',
-        companyName: 'Microsoft',
-        status: 'shortlisted',
-        appliedAt: new Date()
-      }
-    ],
-    monthlyStats: {
-      applications: [30, 45, 60, 55],
-      placements: [10, 15, 20, 18]
-    }
+    totalDrives,
+    activeDrives,
+    closedDrives,
+    totalApplications,
+    totalStudents,
+    approvedStudents,
+    pendingApprovals,
+    placedStudents,
+    placementPercentage: parseFloat(placementPercentage),
+    totalCompanies,
+    recentDrives: drivesWithCounts,
+    recentApplications: formattedApplications
   };
 
   res.status(200).json({
     success: true,
     dashboard: dashboardData
   });
+});
+
+// @desc    Get pending student signups
+// @route   GET /api/tpo/students/pending
+// @access  Private (TPO)
+export const getPendingStudents = asyncHandler(async (req, res, next) => {
+  const { page = 1, limit = 20, department } = req.query;
+
+  const where = { 
+    role: 'STUDENT', 
+    profile_status: 'PENDING' 
+  };
+  
+  if (department) where.department = department;
+
+  const offset = (page - 1) * limit;
+
+  const { count, rows: students } = await User.findAndCountAll({
+    where,
+    limit: parseInt(limit),
+    offset: offset,
+    order: [['createdAt', 'DESC']],
+    attributes: ['id', 'name', 'email', 'student_id', 'department', 'batch_year', 'cgpa', 'phone', 'createdAt']
+  });
+
+  res.status(200).json({
+    success: true,
+    count: students.length,
+    total: count,
+    page: parseInt(page),
+    students
+  });
+});
+
+// @desc    Approve student signup
+// @route   PUT /api/tpo/students/:studentId/approve
+// @access  Private (TPO)
+export const approveStudent = asyncHandler(async (req, res, next) => {
+  const { studentId } = req.params;
+  const { status } = req.body; // 'APPROVED' or 'REJECTED'
+
+  const student = await User.findByPk(studentId);
+  if (!student) {
+    throw new AppError('Student not found', 404);
+  }
+
+  if (student.role !== 'STUDENT') {
+    throw new AppError('User is not a student', 400);
+  }
+
+  student.profile_status = status;
+  await student.save();
+
+  logActivity('STUDENT_APPROVAL', req.user.id, { studentId, status });
+
+  res.status(200).json({
+    success: true,
+    message: `Student ${status === 'APPROVED' ? 'approved' : 'rejected'} successfully`,
+    student: {
+      id: student.id,
+      name: student.name,
+      email: student.email,
+      status: student.profile_status
+    }
+  });
+});
+
+// @desc    Get all students with filters
+// @route   GET /api/tpo/students
+// @access  Private (TPO)
+export const getAllStudents = asyncHandler(async (req, res, next) => {
+  const { page = 1, limit = 20, department, status, search } = req.query;
+
+  const where = { role: 'STUDENT' };
+  
+  if (department) where.department = department;
+  if (status) where.profile_status = status.toUpperCase();
+  if (search) {
+    where[Op.or] = [
+      { name: { [Op.like]: `%${search}%` } },
+      { email: { [Op.like]: `%${search}%` } },
+      { student_id: { [Op.like]: `%${search}%` } }
+    ];
+  }
+
+  const offset = (page - 1) * limit;
+
+  const { count, rows: students } = await User.findAndCountAll({
+    where,
+    limit: parseInt(limit),
+    offset: offset,
+    order: [['createdAt', 'DESC']],
+    attributes: ['id', 'name', 'email', 'student_id', 'department', 'batch_year', 'cgpa', 'phone', 'profile_status', 'resume_path', 'ats_score']
+  });
+
+  res.status(200).json({
+    success: true,
+    count: students.length,
+    total: count,
+    page: parseInt(page),
+    pages: Math.ceil(count / limit),
+    students
+  });
+});
+
+// @desc    Update student profile (by TPO)
+// @route   PUT /api/tpo/students/:studentId
+// @access  Private (TPO)
+export const updateStudentProfile = asyncHandler(async (req, res, next) => {
+  const { studentId } = req.params;
+  const updates = req.body;
+
+  const student = await User.findByPk(studentId);
+  if (!student) {
+    throw new AppError('Student not found', 404);
+  }
+
+  if (student.role !== 'STUDENT') {
+    throw new AppError('User is not a student', 400);
+  }
+
+  // Update allowed fields
+  const allowedFields = ['name', 'email', 'phone', 'department', 'batch_year', 'cgpa', 'profile_status'];
+  allowedFields.forEach(field => {
+    if (updates[field] !== undefined) {
+      student[field] = updates[field];
+    }
+  });
+
+  await student.save();
+
+  logActivity('STUDENT_PROFILE_UPDATED', req.user.id, { studentId });
+
+  res.status(200).json({
+    success: true,
+    message: 'Student profile updated successfully',
+    student: {
+      id: student.id,
+      name: student.name,
+      email: student.email,
+      department: student.department,
+      cgpa: student.cgpa
+    }
+  });
+});
+
+// @desc    Generate placement report (Excel)
+// @route   GET /api/tpo/reports/excel
+// @access  Private (TPO)
+export const generateExcelReport = asyncHandler(async (req, res, next) => {
+  const { department, batchYear } = req.query;
+
+  // Fetch placed students
+  const where = { role: 'STUDENT' };
+  if (department) where.department = department;
+  if (batchYear) where.batch_year = batchYear;
+
+  const students = await User.findAll({
+    where,
+    include: [
+      {
+        model: Application,
+        as: 'applications',
+        where: { status: 'SELECTED' },
+        required: true,
+        include: [
+          {
+            model: Drive,
+            as: 'drive',
+            attributes: ['company_name', 'job_role', 'package']
+          }
+        ]
+      }
+    ],
+    attributes: ['id', 'name', 'email', 'student_id', 'department', 'batch_year', 'cgpa']
+  });
+
+  // Create Excel workbook
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Placement Report');
+
+  // Add headers
+  worksheet.columns = [
+    { header: 'Student ID', key: 'student_id', width: 15 },
+    { header: 'Name', key: 'name', width: 25 },
+    { header: 'Email', key: 'email', width: 30 },
+    { header: 'Department', key: 'department', width: 20 },
+    { header: 'Batch Year', key: 'batch_year', width: 12 },
+    { header: 'CGPA', key: 'cgpa', width: 10 },
+    { header: 'Company', key: 'company', width: 25 },
+    { header: 'Job Role', key: 'job_role', width: 20 },
+    { header: 'Package', key: 'package', width: 15 }
+  ];
+
+  // Add data
+  students.forEach(student => {
+    student.applications.forEach(app => {
+      worksheet.addRow({
+        student_id: student.student_id,
+        name: student.name,
+        email: student.email,
+        department: student.department,
+        batch_year: student.batch_year,
+        cgpa: student.cgpa,
+        company: app.drive.company_name,
+        job_role: app.drive.job_role,
+        package: app.drive.package
+      });
+    });
+  });
+
+  // Style the header row
+  worksheet.getRow(1).font = { bold: true };
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FF4472C4' }
+  };
+
+  // Set response headers
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', `attachment; filename=placement-report-${Date.now()}.xlsx`);
+
+  // Write to response
+  await workbook.xlsx.write(res);
+  res.end();
+
+  logActivity('EXCEL_REPORT_GENERATED', req.user.id, { department, batchYear });
+});
+
+// @desc    Generate placement report (PDF)
+// @route   GET /api/tpo/reports/pdf
+// @access  Private (TPO)
+export const generatePDFReport = asyncHandler(async (req, res, next) => {
+  const { department, batchYear } = req.query;
+
+  // Fetch placement statistics
+  const where = { role: 'STUDENT' };
+  if (department) where.department = department;
+  if (batchYear) where.batch_year = batchYear;
+
+  const totalStudents = await User.count({ where });
+  const placedStudents = await Application.count({
+    where: { status: 'SELECTED' },
+    include: [
+      {
+        model: User,
+        as: 'student',
+        where,
+        attributes: []
+      }
+    ]
+  });
+
+  const placementPercentage = totalStudents > 0 
+    ? ((placedStudents / totalStudents) * 100).toFixed(2) 
+    : 0;
+
+  // Fetch placed students details
+  const students = await User.findAll({
+    where,
+    include: [
+      {
+        model: Application,
+        as: 'applications',
+        where: { status: 'SELECTED' },
+        required: true,
+        include: [
+          {
+            model: Drive,
+            as: 'drive',
+            attributes: ['company_name', 'job_role', 'package']
+          }
+        ]
+      }
+    ],
+    attributes: ['name', 'student_id', 'department', 'cgpa']
+  });
+
+  // Create PDF
+  const doc = new PDFDocument({ margin: 50 });
+
+  // Set response headers
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename=placement-report-${Date.now()}.pdf`);
+
+  // Pipe PDF to response
+  doc.pipe(res);
+
+  // Add content
+  doc.fontSize(20).text('Placement Report', { align: 'center' });
+  doc.moveDown();
+  doc.fontSize(12).text(`Generated on: ${new Date().toLocaleDateString()}`, { align: 'center' });
+  doc.moveDown(2);
+
+  // Statistics
+  doc.fontSize(14).text('Statistics', { underline: true });
+  doc.moveDown();
+  doc.fontSize(11).text(`Total Students: ${totalStudents}`);
+  doc.text(`Placed Students: ${placedStudents}`);
+  doc.text(`Placement Percentage: ${placementPercentage}%`);
+  if (department) doc.text(`Department: ${department}`);
+  if (batchYear) doc.text(`Batch Year: ${batchYear}`);
+  doc.moveDown(2);
+
+  // Placed Students List
+  doc.fontSize(14).text('Placed Students', { underline: true });
+  doc.moveDown();
+
+  students.forEach((student, index) => {
+    student.applications.forEach(app => {
+      doc.fontSize(10);
+      doc.text(`${index + 1}. ${student.name} (${student.student_id})`, { continued: false });
+      doc.text(`   Department: ${student.department} | CGPA: ${student.cgpa}`);
+      doc.text(`   Company: ${app.drive.company_name} | Role: ${app.drive.job_role} | Package: ${app.drive.package}`);
+      doc.moveDown(0.5);
+    });
+  });
+
+  // Finalize PDF
+  doc.end();
+
+  logActivity('PDF_REPORT_GENERATED', req.user.id, { department, batchYear });
 });
 
 export default {
@@ -625,5 +1197,11 @@ export default {
   bulkUpdateStatus,
   uploadOfferLetter,
   sendNotification,
-  getDashboard
+  getDashboard,
+  getPendingStudents,
+  approveStudent,
+  getAllStudents,
+  updateStudentProfile,
+  generateExcelReport,
+  generatePDFReport
 };

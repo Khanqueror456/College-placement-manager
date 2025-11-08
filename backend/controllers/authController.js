@@ -87,12 +87,20 @@ export const login = asyncHandler(async (req, res, next) => {
   const user = await User.findOne({ where: { email } });
   
   if (!user) {
+    logInfo('Login failed - user not found', { email });
     throw new AppError('Invalid email or password', 401);
   }
 
   // Verify password
+  console.log('Attempting login for:', email);
+  console.log('Stored hash length:', user.password?.length);
+  console.log('Input password length:', password?.length);
+  
   const isPasswordMatch = await bcryptjs.compare(password, user.password);
+  console.log('Password match result:', isPasswordMatch);
+  
   if (!isPasswordMatch) {
+    logInfo('Login failed - invalid password', { email });
     throw new AppError('Invalid email or password', 401);
   }
 

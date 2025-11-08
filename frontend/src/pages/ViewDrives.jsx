@@ -46,7 +46,7 @@ const ViewDrivesPage = () => {
       setApplyingTo(selectedDrive.id);
 
       await studentService.applyToDrive(selectedDrive.id, coverLetter);
-      setSuccess(`Successfully applied to ${selectedDrive.companyName}!`);
+      setSuccess(`Successfully applied to ${selectedDrive.companyName || selectedDrive.company_name}!`);
       setShowApplyModal(false);
       setCoverLetter('');
       setSelectedDrive(null);
@@ -148,11 +148,11 @@ const ViewDrivesPage = () => {
                 {/* Company Logo/Icon */}
                 <div className="flex items-center mb-4">
                   <div className="w-12 h-12 bg-gradient-to-br from-sky-500 to-emerald-500 rounded-lg flex items-center justify-center text-2xl font-bold">
-                    {drive.companyName[0]}
+                    {(drive.companyName || drive.company_name || 'C')[0]}
                   </div>
                   <div className="ml-3">
-                    <h3 className="text-xl font-bold">{drive.companyName}</h3>
-                    <p className="text-sm text-slate-400">{drive.jobRole}</p>
+                    <h3 className="text-xl font-bold">{drive.companyName || drive.company_name}</h3>
+                    <p className="text-sm text-slate-400">{drive.jobRole || drive.job_role}</p>
                   </div>
                 </div>
 
@@ -167,16 +167,16 @@ const ViewDrivesPage = () => {
                 <div className="mb-4 space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Min CGPA:</span>
-                    <span className="font-semibold">{drive.eligibilityCriteria.minCGPA}</span>
+                    <span className="font-semibold">{drive.minCGPA || drive.min_cgpa || 'N/A'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Max Backlogs:</span>
-                    <span className="font-semibold">{drive.eligibilityCriteria.maxBacklogs}</span>
+                    <span className="font-semibold">{drive.maxBacklogs || drive.max_backlogs || 'N/A'}</span>
                   </div>
                   <div>
                     <span className="text-slate-400">Departments:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {drive.eligibilityCriteria.allowedDepartments.map((dept, idx) => (
+                      {(drive.allowedDepartments || drive.allowed_departments || []).map((dept, idx) => (
                         <span
                           key={idx}
                           className="text-xs px-2 py-1 bg-slate-700 rounded"
@@ -191,7 +191,7 @@ const ViewDrivesPage = () => {
                 {/* Application Deadline */}
                 <div className="mb-4 p-3 bg-slate-700 rounded-lg">
                   <p className="text-xs text-slate-400">Application Deadline</p>
-                  <p className="font-semibold">{formatDate(drive.applicationDeadline)}</p>
+                  <p className="font-semibold">{formatDate(drive.applicationDeadline || drive.application_deadline)}</p>
                 </div>
 
                 {/* Apply Button */}

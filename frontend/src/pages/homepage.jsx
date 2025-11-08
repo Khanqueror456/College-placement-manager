@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   User, 
@@ -7,12 +7,16 @@ import {
   Linkedin, 
   Github, 
   Send, 
-  MoveRight 
+  MoveRight,
+  TrendingUp,
+  Users,
+  Building
 } from 'lucide-react';
 
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+import api from '../services/api';
 
 // --- Hero Section ---
 const HeroSection = ({ onSignup }) => (
@@ -87,6 +91,68 @@ const FeaturesSection = () => (
   </section>
 );
 
+// --- Stats Section ---
+const StatsSection = () => {
+  const [stats, setStats] = useState({
+    totalDrives: 0,
+    activeDrives: 0,
+    totalStudents: 0,
+    placedStudents: 0
+  });
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      const response = await api.get('/tpo/dashboard');
+      if (response.data) {
+        setStats({
+          totalDrives: response.data.totalDrives || 0,
+          activeDrives: response.data.activeDrives || 0,
+          totalStudents: response.data.totalStudents || 0,
+          placedStudents: response.data.placedStudents || 0
+        });
+      }
+    } catch (err) {
+      console.log('Could not fetch stats');
+    }
+  };
+
+  return (
+    <section className="py-16 px-8 bg-slate-800/30">
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-3xl font-extrabold text-center mb-12 text-slate-100">
+          Placement Statistics
+        </h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="text-center p-6 rounded-xl bg-slate-800/50 border border-slate-700">
+            <Briefcase className="w-10 h-10 text-sky-400 mx-auto mb-3" />
+            <p className="text-4xl font-bold text-white mb-2">{stats.totalDrives}</p>
+            <p className="text-slate-400 text-sm">Total Drives</p>
+          </div>
+          <div className="text-center p-6 rounded-xl bg-slate-800/50 border border-slate-700">
+            <TrendingUp className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
+            <p className="text-4xl font-bold text-white mb-2">{stats.activeDrives}</p>
+            <p className="text-slate-400 text-sm">Active Drives</p>
+          </div>
+          <div className="text-center p-6 rounded-xl bg-slate-800/50 border border-slate-700">
+            <Users className="w-10 h-10 text-yellow-400 mx-auto mb-3" />
+            <p className="text-4xl font-bold text-white mb-2">{stats.totalStudents}</p>
+            <p className="text-slate-400 text-sm">Total Students</p>
+          </div>
+          <div className="text-center p-6 rounded-xl bg-slate-800/50 border border-slate-700">
+            <UserCheck className="w-10 h-10 text-purple-400 mx-auto mb-3" />
+            <p className="text-4xl font-bold text-white mb-2">{stats.placedStudents}</p>
+            <p className="text-slate-400 text-sm">Placed Students</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
 // --- Contact Section ---
 const ContactSection = () => (
   <section id="contact" className="py-24 px-8">
@@ -140,6 +206,7 @@ const HomePage = ({ onLoginClick, onSignupClick }) => {
       <Navbar onLogin={onLoginClick} onSignup={onSignupClick} />
       <main>
         <HeroSection onSignup={onSignupClick} />
+        <StatsSection />
         <FeaturesSection />
         <ContactSection />
       </main>

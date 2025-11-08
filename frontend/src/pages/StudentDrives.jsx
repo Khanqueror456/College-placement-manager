@@ -1,42 +1,11 @@
-import React, { useState } from 'react';
-import { Plus, Check } from 'lucide-react';
-
-// Mock data for drives
-const MOCK_DRIVES = [
-  {
-    id: 'd1',
-    company: 'Tech Solutions Inc.',
-    logo: 'https://placehold.co/100x100/1e293b/94a3b8?text=TS',
-    role: 'Software Engineer Intern',
-    type: 'Internship',
-    description:
-      'Work on cutting-edge projects, contributing to both front-end and back-end services.',
-    enrolled: true,
-  },
-  {
-    id: 'd2',
-    company: 'Data-Analytics Co.',
-    logo: 'https://placehold.co/100x100/1e293b/94a3b8?text=DA',
-    role: 'Data Analyst Trainee',
-    type: 'Full-time',
-    description:
-      'Analyze large datasets to provide actionable insights for our Fortune 500 clients.',
-    enrolled: false,
-  },
-  {
-    id: 'd3',
-    company: 'CloudFirst Ltd.',
-    logo: 'https://placehold.co/100x100/1e293b/94a3b8?text=CF',
-    role: 'Cloud Support Engineer',
-    type: 'Full-time',
-    description:
-      'Join our team to manage and scale our multi-cloud infrastructure using AWS and Azure.',
-    enrolled: false,
-  },
-];
+import React, { useState, useEffect } from 'react';
+import { Plus, Check, Calendar, MapPin, DollarSign, Building, Loader } from 'lucide-react';
+import studentService from '../services/studentService';
 
 // Drive Card Component
-const DriveCard = ({ drive, onEnroll }) => {
+const DriveCard = ({ drive, onApply, isApplying }) => {
+  const hasApplied = drive.hasApplied || false;
+  
   return (
     <div
       className="
@@ -48,22 +17,41 @@ const DriveCard = ({ drive, onEnroll }) => {
       "
     >
       <div className="flex items-start gap-4 mb-4">
-        <img
-          src={drive.logo}
-          alt={`${drive.company} logo`}
-          className="w-16 h-16 rounded-lg object-cover border-2 border-[#475569]"
-        />
+        <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center">
+          <Building className="w-8 h-8 text-white" />
+        </div>
         <div>
           <h3 className="text-xl font-bold text-[#e2e8f0]">
-            {drive.company}
+            {drive.companyName || drive.company_name}
           </h3>
-          <p className="text-[#38bdf8] text-sm">{drive.role}</p>
+          <p className="text-[#38bdf8] text-sm">{drive.jobRole || drive.job_role}</p>
         </div>
       </div>
 
-      <p className="text-[#94a3b8] text-sm mb-6 flex-grow">
-        {drive.description}
+      <p className="text-[#94a3b8] text-sm mb-4 flex-grow line-clamp-3">
+        {drive.jobDescription || drive.job_description || 'No description available'}
       </p>
+
+      <div className="space-y-2 mb-4 text-sm">
+        {drive.package && (
+          <div className="flex items-center text-[#94a3b8]">
+            <DollarSign className="w-4 h-4 mr-2 text-emerald-400" />
+            <span>{drive.package}</span>
+          </div>
+        )}
+        {drive.location && (
+          <div className="flex items-center text-[#94a3b8]">
+            <MapPin className="w-4 h-4 mr-2 text-sky-400" />
+            <span>{drive.location}</span>
+          </div>
+        )}
+        {drive.driveDate && (
+          <div className="flex items-center text-[#94a3b8]">
+            <Calendar className="w-4 h-4 mr-2 text-yellow-400" />
+            <span>{new Date(drive.driveDate).toLocaleDateString()}</span>
+          </div>
+        )}
+      </div>
 
       <div className="flex items-center justify-between">
         <span
@@ -73,31 +61,38 @@ const DriveCard = ({ drive, onEnroll }) => {
             border border-[#10b981]/50
           "
         >
-          {drive.type}
+          {drive.jobType || drive.job_type || 'Full-time'}
         </span>
 
         <button
-          onClick={() => onEnroll(drive.id)}
-          disabled={drive.enrolled}
+          onClick={() => onApply(drive.id)}
+          disabled={hasApplied || isApplying}
           className={`
             flex items-center justify-center px-4 py-2 rounded-lg font-semibold
             transition-all duration-300
             ${
-              drive.enrolled
+              hasApplied
                 ? 'bg-[#475569]/70 text-[#94a3b8] cursor-not-allowed'
+                : isApplying
+                ? 'bg-[#475569] text-[#94a3b8] cursor-wait'
                 : 'bg-[#10b981] text-[#0f172a] hover:bg-[#34d399]'
             }
           `}
         >
-          {drive.enrolled ? (
+          {isApplying ? (
+            <>
+              <Loader className="w-5 h-5 mr-1.5 animate-spin" />
+              Applying...
+            </>
+          ) : hasApplied ? (
             <>
               <Check className="w-5 h-5 mr-1.5" strokeWidth={3} />
-              Enrolled
+              Applied
             </>
           ) : (
             <>
               <Plus className="w-5 h-5 mr-1.5" strokeWidth={3} />
-              Enroll
+              Apply Now
             </>
           )}
         </button>
@@ -108,14 +103,53 @@ const DriveCard = ({ drive, onEnroll }) => {
 
 // Main Drives Component
 const StudentDrives = () => {
-  const [drives, setDrives] = useState(MOCK_DRIVES);
+  const [drives, setDrives] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [applyingId, setApplyingId] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleEnroll = (driveId) => {
-    setDrives((currentDrives) =>
-      currentDrives.map((drive) =>
-        drive.id === driveId ? { ...drive, enrolled: true } : drive
-      )
-    );
+  useEffect(() => {
+    fetchActiveDrives();
+  }, []);
+
+  const fetchActiveDrives = async () => {
+    try {
+      setLoading(true);
+      const response = await studentService.getActiveDrives();
+      setDrives(response.drives || []);
+      setError('');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load drives');
+      console.error('Error fetching drives:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApply = async (driveId) => {
+    try {
+      setApplyingId(driveId);
+      setError('');
+      setSuccessMessage('');
+      
+      await studentService.applyToDrive(driveId);
+      
+      // Update the drive to show it's been applied to
+      setDrives((currentDrives) =>
+        currentDrives.map((drive) =>
+          drive.id === driveId ? { ...drive, hasApplied: true } : drive
+        )
+      );
+      
+      setSuccessMessage('Application submitted successfully!');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to apply to drive');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setApplyingId(null);
+    }
   };
 
   return (
@@ -124,14 +158,42 @@ const StudentDrives = () => {
         Active Placement Drives
       </h1>
 
-      {drives.length === 0 ? (
-        <p className="text-[#94a3b8]">
-          No active drives available at the moment.
-        </p>
+      {error && (
+        <div className="mb-6 p-4 bg-red-500 bg-opacity-20 border border-red-500 rounded-lg text-red-200">
+          {error}
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="mb-6 p-4 bg-green-500 bg-opacity-20 border border-green-500 rounded-lg text-green-200">
+          {successMessage}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader className="w-8 h-8 text-sky-400 animate-spin" />
+          <span className="ml-3 text-[#94a3b8]">Loading drives...</span>
+        </div>
+      ) : drives.length === 0 ? (
+        <div className="text-center py-12">
+          <Building className="w-16 h-16 text-[#475569] mx-auto mb-4" />
+          <p className="text-[#94a3b8] text-lg">
+            No active drives available at the moment.
+          </p>
+          <p className="text-[#64748b] text-sm mt-2">
+            Check back later for new opportunities!
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {drives.map((drive) => (
-            <DriveCard key={drive.id} drive={drive} onEnroll={handleEnroll} />
+            <DriveCard 
+              key={drive.id} 
+              drive={drive} 
+              onApply={handleApply}
+              isApplying={applyingId === drive.id}
+            />
           ))}
         </div>
       )}

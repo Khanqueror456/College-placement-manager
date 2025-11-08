@@ -18,7 +18,19 @@ export const register = async (userData) => {
     
     return response.data;
   } catch (error) {
-    throw error;
+    // Format error message properly with validation details
+    let errorMessage = 'Registration failed. Please try again.';
+    
+    if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+      // Validation errors
+      errorMessage = error.response.data.errors.map(err => err.message).join(', ');
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    throw errorMessage;
   }
 };
 
@@ -35,7 +47,19 @@ export const login = async (email, password, role) => {
     
     return response.data;
   } catch (error) {
-    throw error;
+    // Format error message properly with validation details
+    let errorMessage = 'Login failed. Please check your credentials.';
+    
+    if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+      // Validation errors
+      errorMessage = error.response.data.errors.map(err => err.message).join(', ');
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    throw errorMessage;
   }
 };
 

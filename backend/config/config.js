@@ -17,6 +17,7 @@ const config = {
     username: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || 'password',
     dialect: process.env.DB_DIALECT || 'postgres',
+    storage: process.env.DB_STORAGE || './database.sqlite', // For SQLite
     pool: {
       max: parseInt(process.env.DB_POOL_MAX) || 5,
       min: parseInt(process.env.DB_POOL_MIN) || 0,
@@ -61,7 +62,7 @@ const config = {
 
   // CORS Configuration
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000'],
     credentials: true
   },
 

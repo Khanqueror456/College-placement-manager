@@ -124,7 +124,11 @@ const startServer = async () => {
     // Sync database models (only in development)
     if (config.nodeEnv === 'development') {
       logger.info('🔄 Syncing database models...');
-      await syncDatabase(false, false); // Set to true to force sync (WARNING: drops tables)
+      const forceSync = process.env.FORCE_SYNC === 'true';
+      if (forceSync) {
+        logger.warn('⚠️  FORCE_SYNC enabled - Recreating all tables');
+      }
+      await syncDatabase(forceSync, false); // Set to true to force sync (WARNING: drops tables)
     }
 
     // Start server

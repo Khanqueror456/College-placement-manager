@@ -12,7 +12,13 @@ import {
   bulkUpdateStatus,
   uploadOfferLetter,
   sendNotification,
-  getDashboard
+  getDashboard,
+  getPendingStudents,
+  approveStudent,
+  getAllStudents,
+  updateStudentProfile,
+  generateExcelReport,
+  generatePDFReport
 } from '../controllers/tpoController.js';
 import { authenticate, isTPO } from '../middlewares/auth.js';
 import { uploadOfferLetter as uploadOfferLetterMiddleware } from '../middlewares/upload.js';
@@ -39,6 +45,16 @@ router.get('/drives/:driveId/applications', getApplicationsForDrive);
 router.put('/applications/:applicationId/status', updateApplicationStatus);
 router.post('/applications/bulk-update', bulkUpdateStatus);
 router.post('/applications/:applicationId/offer-letter', uploadOfferLetterMiddleware, uploadOfferLetter);
+
+// Student management routes
+router.get('/students/pending', getPendingStudents);
+router.get('/students', getAllStudents);
+router.put('/students/:studentId/approve', approveStudent);
+router.put('/students/:studentId', updateStudentProfile);
+
+// Report generation routes
+router.get('/reports/excel', generateExcelReport);
+router.get('/reports/pdf', generatePDFReport);
 
 // Notification routes
 router.post('/notifications', sendNotification);

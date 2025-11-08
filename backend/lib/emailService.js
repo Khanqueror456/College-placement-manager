@@ -497,6 +497,219 @@ export const sendNewDriveNotification = async (student, drive) => {
 };
 
 /**
+ * Send offer letter email with attachment
+ * @param {Object} student - Student details
+ * @param {Object} application - Application details
+ * @param {string} offerLetterPath - Path to offer letter file
+ */
+export const sendOfferLetterEmail = async (student, application, offerLetterPath) => {
+  const subject = '🎉 Congratulations! Your Offer Letter is Ready';
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+      <div style="background-color: #4CAF50; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        <h1 style="margin: 0; font-size: 24px;">🎉 Offer Letter Available!</h1>
+      </div>
+      
+      <div style="background-color: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+          Dear <strong>${student.name}</strong>,
+        </p>
+        
+        <p style="font-size: 16px; color: #333; line-height: 1.6;">
+          Congratulations on your selection! Your official offer letter from <strong>${application.companyName}</strong> 
+          for the position of <strong>${application.jobRole}</strong> is now ready.
+        </p>
+        
+        <div style="background-color: #e8f5e8; padding: 20px; border-radius: 6px; margin: 20px 0;">
+          <h3 style="color: #2e7d32; margin: 0 0 15px 0;">📋 Offer Details:</h3>
+          <p style="margin: 5px 0; color: #666;"><strong>Company:</strong> ${application.companyName}</p>
+          <p style="margin: 5px 0; color: #666;"><strong>Position:</strong> ${application.jobRole}</p>
+          <p style="margin: 5px 0; color: #666;"><strong>Package:</strong> ${application.package || 'As discussed'}</p>
+          <p style="margin: 5px 0; color: #666;"><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN')}</p>
+        </div>
+        
+        <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+          <h3 style="color: #856404; margin: 0 0 10px 0;">📎 Offer Letter Attached</h3>
+          <p style="color: #856404; margin: 0;">
+            Please download and review your offer letter attached to this email. Keep it safe for your records.
+          </p>
+        </div>
+        
+        <div style="background-color: #e3f2fd; padding: 15px; border-radius: 6px; margin: 20px 0;">
+          <h3 style="color: #1976d2; margin: 0 0 10px 0;">📝 Next Steps:</h3>
+          <ul style="color: #333; margin: 0; padding-left: 20px;">
+            <li>Review the offer letter carefully</li>
+            <li>Sign and return as per instructions</li>
+            <li>Complete any joining formalities</li>
+            <li>Wait for further communication from the company</li>
+          </ul>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${config.cors.origin}/student/applications" 
+             style="background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+            View in Dashboard
+          </a>
+        </div>
+        
+        <p style="font-size: 14px; color: #666; text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+          Congratulations once again on your achievement!<br>
+          <strong>College Placement Portal</strong>
+        </p>
+      </div>
+    </div>
+  `;
+
+  const text = `
+    Dear ${student.name},
+    
+    Congratulations on your selection! Your official offer letter from ${application.companyName} 
+    for the position of ${application.jobRole} is now ready and attached to this email.
+    
+    Offer Details:
+    - Company: ${application.companyName}
+    - Position: ${application.jobRole}
+    - Package: ${application.package || 'As discussed'}
+    - Date: ${new Date().toLocaleDateString('en-IN')}
+    
+    Next Steps:
+    - Review the offer letter carefully
+    - Sign and return as per instructions
+    - Complete any joining formalities
+    - Wait for further communication from the company
+    
+    You can also view your offer letter in your dashboard at: ${config.cors.origin}/student/applications
+    
+    Congratulations once again on your achievement!
+    
+    Best regards,
+    College Placement Portal
+  `;
+
+  try {
+    const mailOptions = {
+      from: `"College Placement Portal" <${process.env.EMAIL_USER}>`,
+      to: student.email,
+      subject,
+      html,
+      text,
+      attachments: [
+        {
+          filename: `Offer_Letter_${student.name.replace(/\s+/g, '_')}.pdf`,
+          path: offerLetterPath
+        }
+      ]
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    
+    logInfo('Offer letter email sent successfully', {
+      to: student.email,
+      subject: subject,
+      messageId: info.messageId,
+      hasAttachment: true
+    });
+
+    return true;
+  } catch (error) {
+    logError('Offer letter email sending failed', {
+      to: student.email,
+      subject: subject,
+      error: error.message
+    });
+    return false;
+  }
+};
+
+/**
+ * Send bulk notification email
+ * @param {Array} recipients - Array of email addresses
+ * @param {string} subject - Email subject
+ * @param {string} message - Email message
+ * @param {Object} driveDetails - Optional drive details for context
+ */
+export const sendBulkNotification = async (recipients, subject, message, driveDetails = null) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
+      <div style="background-color: #2196F3; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+        <h1 style="margin: 0; font-size: 24px;">📢 ${subject}</h1>
+      </div>
+      
+      <div style="background-color: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+        <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+          Dear Student,
+        </p>
+        
+        <div style="background-color: #f5f5f5; padding: 20px; border-radius: 6px; margin: 20px 0;">
+          <p style="color: #333; margin: 0; white-space: pre-wrap;">${message}</p>
+        </div>
+        
+        ${driveDetails ? `
+        <div style="background-color: #e3f2fd; padding: 20px; border-radius: 6px; margin: 20px 0;">
+          <h3 style="color: #1976d2; margin: 0 0 15px 0;">🏢 Drive Details:</h3>
+          <p style="margin: 5px 0; color: #666;"><strong>Company:</strong> ${driveDetails.companyName}</p>
+          <p style="margin: 5px 0; color: #666;"><strong>Role:</strong> ${driveDetails.jobRole}</p>
+          ${driveDetails.package ? `<p style="margin: 5px 0; color: #666;"><strong>Package:</strong> ${driveDetails.package}</p>` : ''}
+          ${driveDetails.deadline ? `<p style="margin: 5px 0; color: #666;"><strong>Deadline:</strong> ${new Date(driveDetails.deadline).toLocaleDateString('en-IN')}</p>` : ''}
+        </div>
+        ` : ''}
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${config.cors.origin}/student/drives" 
+             style="background-color: #2196F3; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+            View Placement Drives
+          </a>
+        </div>
+        
+        <p style="font-size: 14px; color: #666; text-align: center; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px;">
+          <strong>College Placement Portal</strong><br>
+          Training & Placement Cell
+        </p>
+      </div>
+    </div>
+  `;
+
+  const text = `
+    Dear Student,
+    
+    ${message}
+    
+    ${driveDetails ? `
+    Drive Details:
+    - Company: ${driveDetails.companyName}
+    - Role: ${driveDetails.jobRole}
+    ${driveDetails.package ? `- Package: ${driveDetails.package}` : ''}
+    ${driveDetails.deadline ? `- Deadline: ${new Date(driveDetails.deadline).toLocaleDateString('en-IN')}` : ''}
+    ` : ''}
+    
+    Visit the portal for more details: ${config.cors.origin}/student/drives
+    
+    Best regards,
+    College Placement Portal
+    Training & Placement Cell
+  `;
+
+  const results = [];
+  
+  for (const email of recipients) {
+    try {
+      await sendEmail({
+        to: email,
+        subject,
+        html,
+        text
+      });
+      results.push({ email, success: true });
+    } catch (error) {
+      results.push({ email, success: false, error: error.message });
+    }
+  }
+
+  return results;
+};
+
+/**
  * Test email configuration
  */
 export const testEmailConnection = async () => {
@@ -538,5 +751,7 @@ export default {
   sendStudentRejectionEmail,
   sendApplicationStatusEmail,
   sendNewDriveNotification,
+  sendOfferLetterEmail,
+  sendBulkNotification,
   testEmailConnection
 };

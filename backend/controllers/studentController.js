@@ -4,6 +4,10 @@ import { AppError } from '../middlewares/errorHandler.js';
 import { logInfo, logActivity } from '../middlewares/logger.js';
 import { deleteFile, getFileUrl } from '../middlewares/upload.js';
 import User from '../models/users.js';
+import Drive from '../models/drive.js';
+import Application from '../models/application.js';
+import Company from '../models/company.js';
+import { Op } from 'sequelize';
 
 /**
  * Student Controller
@@ -156,51 +160,80 @@ export const deleteResume = asyncHandler(async (req, res, next) => {
 export const getActiveDrives = asyncHandler(async (req, res, next) => {
   const studentId = req.user.id;
   
-  // TODO: Get student details for eligibility check
-  // const student = await User.findById(studentId);
+  // Get student details for eligibility check
+  const student = await User.findByPk(studentId);
+  
+  if (!student) {
+    throw new AppError('Student not found', 404);
+  }
 
-  // TODO: Fetch active drives from database with eligibility filtering
-  // const drives = await Drive.find({
-  //   status: 'active',
-  //   applicationDeadline: { $gte: new Date() },
-  //   'eligibilityCriteria.allowedDepartments': student.department,
-  //   'eligibilityCriteria.minCGPA': { $lte: student.cgpa }
-  // }).sort({ createdAt: -1 });
-
-  // Mock active drives
-  const drives = [
-    {
-      id: 'drive_1',
-      companyName: 'Google',
-      jobRole: 'Software Engineer',
-      package: '25 LPA',
-      eligibilityCriteria: {
-        minCGPA: 7.0,
-        allowedDepartments: ['Computer Science', 'IT'],
-        maxBacklogs: 0
-      },
-      applicationDeadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      status: 'active'
-    },
-    {
-      id: 'drive_2',
-      companyName: 'Microsoft',
-      jobRole: 'SDE Intern',
-      package: '80k/month',
-      eligibilityCriteria: {
-        minCGPA: 7.5,
-        allowedDepartments: ['Computer Science', 'IT', 'ECE'],
-        maxBacklogs: 0
-      },
-      applicationDeadline: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
-      status: 'active'
+  // Build where clause for active drives
+  const whereClause = {
+    status: 'ACTIVE',
+    application_deadline: {
+      [Op.gte]: new Date() // Only show drives with future deadlines
     }
-  ];
+  };
+
+  // Fetch active drives from database
+  const drives = await Drive.findAll({
+    where: whereClause,
+    include: [
+      {
+        model: Company,
+        as: 'company',
+        attributes: ['id', 'name', 'industry', 'website']
+      }
+    ],
+    order: [['createdAt', 'DESC']]
+  });
+
+  console.log(`\n🔍 DEBUG: Found ${drives.length} active drives`);
+  console.log(`📊 Student: ID=${studentId}, Dept=${student.department}, CGPA=${student.cgpa}`);
+  
+  drives.forEach((drive, idx) => {
+    console.log(`\n📋 Drive ${idx + 1}:`);
+    console.log(`   ID: ${drive.id}, Company: ${drive.company_name}, Role: ${drive.job_role}`);
+    console.log(`   Min CGPA: ${drive.min_cgpa}, Allowed Depts: ${JSON.stringify(drive.allowed_departments)}`);
+    console.log(`   Deadline: ${drive.application_deadline}`);
+  });
+
+  // Map drives with application status - NO ELIGIBILITY FILTERING
+  const drivesWithEligibility = await Promise.all(drives.map(async (drive) => {
+    // All students can see all drives - always eligible
+    const isEligible = true;
+
+    // Check if student has already applied
+    const existingApplication = await Application.findOne({
+      where: {
+        student_id: studentId,
+        drive_id: drive.id
+      }
+    });
+
+    return {
+      id: drive.id,
+      companyName: drive.company_name,
+      jobRole: drive.job_role,
+      jobDescription: drive.job_description,
+      package: drive.package,
+      jobType: drive.job_type,
+      location: drive.location,
+      minCGPA: drive.min_cgpa,
+      allowedDepartments: drive.allowed_departments,
+      maxBacklogs: drive.max_backlogs,
+      applicationDeadline: drive.application_deadline,
+      driveDate: drive.drive_date,
+      status: drive.status,
+      isEligible,
+      hasApplied: !!existingApplication
+    };
+  }));
 
   res.status(200).json({
     success: true,
-    count: drives.length,
-    drives
+    count: drivesWithEligibility.length,
+    drives: drivesWithEligibility
   });
 });
 
@@ -212,52 +245,60 @@ export const applyToDrive = asyncHandler(async (req, res, next) => {
   const { driveId } = req.params;
   const { coverLetter } = req.body;
 
-  // TODO: Check if student exists and has resume
-  // const student = await User.findById(studentId);
-  // if (!student.resumeUrl) {
-  //   throw new AppError('Please upload your resume before applying', 400);
-  // }
+  // Check if student exists
+  const student = await User.findByPk(studentId);
+  if (!student) {
+    throw new AppError('Student not found', 404);
+  }
 
-  // TODO: Check if drive exists and is active
-  // const drive = await Drive.findById(driveId);
-  // if (!drive) {
-  //   throw new AppError('Placement drive not found', 404);
-  // }
-  // if (drive.status !== 'active') {
-  //   throw new AppError('This drive is not accepting applications', 400);
-  // }
+  // Check if drive exists and is active
+  const drive = await Drive.findByPk(driveId);
+  if (!drive) {
+    throw new AppError('Placement drive not found', 404);
+  }
+  
+  if (drive.status !== 'ACTIVE') {
+    throw new AppError('This drive is not accepting applications', 400);
+  }
 
-  // TODO: Check eligibility
-  // if (student.cgpa < drive.eligibilityCriteria.minCGPA) {
-  //   throw new AppError('You do not meet the minimum CGPA requirement', 403);
-  // }
+  // Check if deadline has passed
+  if (new Date() > new Date(drive.application_deadline)) {
+    throw new AppError('Application deadline has passed', 400);
+  }
 
-  // TODO: Check if already applied
-  // const existingApplication = await Application.findOne({ student: studentId, drive: driveId });
-  // if (existingApplication) {
-  //   throw new AppError('You have already applied to this drive', 400);
-  // }
+  // NO ELIGIBILITY CHECKS - All students can apply to any drive
 
-  // TODO: Create application
-  // const application = await Application.create({
-  //   student: studentId,
-  //   drive: driveId,
-  //   coverLetter,
-  //   status: 'applied',
-  //   appliedAt: new Date()
-  // });
+  // Check if already applied
+  const existingApplication = await Application.findOne({ 
+    where: {
+      student_id: studentId, 
+      drive_id: driveId 
+    }
+  });
+  
+  if (existingApplication) {
+    throw new AppError('You have already applied to this drive', 400);
+  }
+
+  // Create application
+  const application = await Application.create({
+    student_id: studentId,
+    drive_id: driveId,
+    status: 'APPLIED',
+    applied_at: new Date()
+  });
 
   // Log activity
-  logActivity('APPLIED_TO_DRIVE', studentId, { driveId });
+  logActivity('APPLIED_TO_DRIVE', studentId, { driveId, companyName: drive.company_name });
 
   res.status(201).json({
     success: true,
     message: 'Application submitted successfully',
     application: {
-      id: `app_${Date.now()}`,
-      driveId,
-      status: 'applied',
-      appliedAt: new Date()
+      id: application.id,
+      driveId: application.drive_id,
+      status: application.status,
+      appliedAt: application.applied_at
     }
   });
 });
@@ -268,43 +309,50 @@ export const applyToDrive = asyncHandler(async (req, res, next) => {
 export const getMyApplications = asyncHandler(async (req, res, next) => {
   const studentId = req.user.id;
 
-  // TODO: Fetch applications from database
-  // const applications = await Application.find({ student: studentId })
-  //   .populate('drive', 'companyName jobRole package status')
-  //   .sort({ appliedAt: -1 });
-
-  // Mock applications
-  const applications = [
-    {
-      id: 'app_1',
-      drive: {
-        id: 'drive_1',
-        companyName: 'Google',
-        jobRole: 'Software Engineer',
-        package: '25 LPA'
-      },
-      status: 'shortlisted',
-      currentRound: 'Technical Interview',
-      appliedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
+  // Fetch applications from database
+  const applications = await Application.findAll({
+    where: {
+      student_id: studentId
     },
-    {
-      id: 'app_2',
-      drive: {
-        id: 'drive_2',
-        companyName: 'Microsoft',
-        jobRole: 'SDE Intern',
-        package: '80k/month'
-      },
-      status: 'applied',
-      currentRound: 'Resume Screening',
-      appliedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
-    }
-  ];
+    include: [
+      {
+        model: Drive,
+        as: 'drive',
+        attributes: ['id', 'company_name', 'job_role', 'package', 'location', 'drive_date', 'status'],
+        include: [
+          {
+            model: Company,
+            as: 'company',
+            attributes: ['id', 'name', 'industry']
+          }
+        ]
+      }
+    ],
+    order: [['applied_at', 'DESC']]
+  });
+
+  // Transform to match frontend expectations
+  const formattedApplications = applications.map(app => ({
+    id: app.id,
+    drive: {
+      id: app.drive?.id,
+      companyName: app.drive?.company_name,
+      jobRole: app.drive?.job_role,
+      package: app.drive?.package,
+      location: app.drive?.location,
+      driveDate: app.drive?.drive_date
+    },
+    status: app.status,
+    currentRound: app.current_round || 'Application Submitted',
+    appliedAt: app.applied_at,
+    feedback: app.feedback,
+    offerLetterPath: app.offer_letter_path
+  }));
 
   res.status(200).json({
     success: true,
-    count: applications.length,
-    applications
+    count: formattedApplications.length,
+    applications: formattedApplications
   });
 });
 
