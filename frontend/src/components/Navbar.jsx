@@ -33,20 +33,20 @@ const Navbar = ({ onLogin, onSignup, className = ""  }) => {
     `}>
       <div className="flex items-center justify-between">
         {/* Logo/Brand Name */}
-        <a href="/" className="text-2xl font-bold text-sky-400">
+        <Link to="/" className="text-2xl font-bold text-sky-400">
           Career<span className="text-emerald-400">Hub</span>
-        </a>
+        </Link>
 
         {/* Desktop Nav Links */}
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((link) => (
-            <a 
+            <Link
               key={link.name} 
-              href={link.href}
+              to={link.href}
               className="text-slate-300 font-medium hover:text-sky-400 transition-colors"
             >
               {link.name}
-            </a>
+            </Link>
           ))}
         </div>
 
@@ -83,28 +83,32 @@ const Navbar = ({ onLogin, onSignup, className = ""  }) => {
       {isOpen && (
         <div className="md:hidden mt-4 space-y-4">
           {navLinks.map((link) => (
-            <a 
+            <Link
               key={link.name} 
-              href={link.href}
+              to={link.href}
               className="block text-slate-300 font-medium hover:text-sky-400 transition-colors py-2"
               onClick={() => setIsOpen(false)}
             >
               {link.name}
-            </a>
+            </Link>
           ))}
           <div className="flex flex-col gap-4 pt-4 border-t border-slate-500/30">
-            <button 
-              onClick={() => { onLogin(); setIsOpen(false); }}
-              className="w-full text-left px-5 py-2.5 rounded-lg font-semibold text-sky-400 bg-slate-700/50 hover:bg-slate-700"
-            >
-              Login
-            </button>
-            <button 
-              onClick={() => { onSignup(); setIsOpen(false); }}
-              className="w-full px-5 py-2.5 rounded-lg font-semibold bg-emerald-500 text-slate-900 hover:bg-emerald-400"
-            >
-              Sign Up
-            </button>
+            <Link to="/login" state={{ mode: 'login' }}>
+              <button 
+                onClick={() => { onLogin(); setIsOpen(false); }}
+                className="w-full text-left px-5 py-2.5 rounded-lg font-semibold text-sky-400 bg-slate-700/50 hover:bg-slate-700"
+              >
+                Login
+              </button>
+            </Link>
+            <Link to="/login" state={{ mode: 'signup' }}>
+              <button 
+                onClick={() => { onSignup(); setIsOpen(false); }}
+                className="w-full px-5 py-2.5 rounded-lg font-semibold bg-emerald-500 text-slate-900 hover:bg-emerald-400"
+              >
+                Sign Up
+              </button>
+            </Link>
           </div>
         </div>
       )}

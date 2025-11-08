@@ -39,10 +39,16 @@ api.interceptors.response.use(
       const { status, data } = error.response;
       
       if (status === 401) {
-        // Unauthorized - clear token and redirect to login
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        // Only redirect to login if we're not on public pages
+        const publicPages = ['/', '/about', '/contact', '/login'];
+        const currentPath = window.location.pathname;
+        
+        if (!publicPages.includes(currentPath)) {
+          // Unauthorized - clear token and redirect to login
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }
       }
       
       // Return error message from backend

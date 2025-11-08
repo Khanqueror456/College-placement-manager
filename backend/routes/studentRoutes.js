@@ -28,7 +28,8 @@ router.put('/profile', validateStudentProfile, updateProfile);
 
 // Resume routes
 router.post('/resume', uploadResumeMiddleware, uploadResume);
-router.get('/resume/:studentId?', getResume); // Get own or specific student's resume
+router.get('/resume/:studentId', getResume); // Get specific student's resume
+router.get('/resume', getResume); // Get own resume
 router.delete('/resume', deleteResume);
 
 // Drive routes

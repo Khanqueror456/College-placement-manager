@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getPendingApprovals, approveStudent, rejectStudent, getStudentResume } from '../services/hodService';
+import { useAuth } from '../context/AuthContext';
 
 // --- SVG Icons ---
 const LogoutIcon = () => (
@@ -25,7 +26,9 @@ const FileTextIcon = () => (
 );
 
 // --- HOD Dashboard Component ---
-const HodDashboard = ({ onLogout }) => {
+const HodDashboard = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -58,6 +61,15 @@ const HodDashboard = ({ onLogout }) => {
       setError('Failed to load pending approvals');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
     }
   };
 
@@ -131,7 +143,7 @@ const HodDashboard = ({ onLogout }) => {
           </Link>
 
           <button
-            onClick={onLogout}
+            onClick={handleLogout}
             className="
             flex items-center px-4 py-2 rounded-lg font-semibold
             bg-slate-700 hover:bg-slate-600

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Chart as ChartJS,
@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { getHodDashboard } from '../services/hodService';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 // --- Register Chart.js components ---
 ChartJS.register(ArcElement, Tooltip, Legend);
@@ -74,6 +76,7 @@ const HodPlacementReport = () => {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const reportRef = useRef(null);
 
   useEffect(() => {
     fetchReportData();
@@ -112,6 +115,33 @@ const HodPlacementReport = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+    // --- PDF Download Handler ---
+  const handleDownloadPDF = async () => {
+    const input = reportRef.current;
+    const canvas = await html2canvas(input, { scale: 2, backgroundColor: '#0f172a' });
+    const imgData = canvas.toDataURL('image/png');
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const imgWidth = 190; // fits within A4 width with margin
+    const pageHeight = 297;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 10;
+
+    pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    // For multi-page content
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+    }
+
+    pdf.save(`Department_Statistics_Report.pdf`);
   };
 
   if (loading) {
@@ -239,6 +269,7 @@ const HodPlacementReport = () => {
             backgroundColor: '#10b981',
             color: '#0f172a',
           }}
+          onClick={handleDownloadPDF}
           onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#34d399')}
           onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#10b981')}
         >
@@ -247,8 +278,10 @@ const HodPlacementReport = () => {
         </button>
       </div>
 
-      {/* --- KPI Stats Grid --- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+      {/* Report Content - Wrapped with ref for PDF download */}
+      <div ref={reportRef}>
+        {/* --- KPI Stats Grid --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <StatCard
           title="Placement Rate"
           value={summary.placementRate}
@@ -279,7 +312,7 @@ const HodPlacementReport = () => {
           icon={CheckSquare}
           colorClass="emerald"
         />
-      </div>
+        </div>
 
       {/* --- Main Chart Area --- */}
       <div
@@ -307,6 +340,7 @@ const HodPlacementReport = () => {
           </div>
         </div>
       </div>
+      </div> {/* Close reportRef div */}
     </div>
   );
 };

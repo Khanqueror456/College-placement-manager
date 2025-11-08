@@ -26,7 +26,8 @@ const TpoDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const response = await api.get('/tpo/dashboard');
-      setDashboardData(response.data);
+      // Backend returns data in response.data.dashboard
+      setDashboardData(response.data.dashboard);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load dashboard');
       console.error('Dashboard error:', err);
