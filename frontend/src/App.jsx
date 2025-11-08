@@ -13,11 +13,9 @@ import HodStatistics from './components/hod_stats';
 import HodPlacementReport from "./components/hod_reports"
 import StudentOverview from "./components/student_dashboard"
 import EditStudentProfile from "./pages/EditStudentProfile.jsx"
-import TpoDashboard from './pages/TpoDashboard.jsx';
-import TpoCompanies from './pages/TpoCompanies.jsx';
-import TpoDrives from './pages/TpoDrives.jsx';
-import TpoApplications from './pages/TpoApplications.jsx';
+import TpoOverview from './pages/tpo_overview.jsx';
 import TpoDriveStats from "./components/drive_stats.jsx"
+import TpoDashboard from './pages/tpo_dashboard.jsx';
 import { AuthProvider } from './context/AuthContext';
 import ApiTest from './pages/ApiTest';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -25,6 +23,7 @@ import StudentDashboard from './pages/StudentDashboard';
 import StudentProfileNew from './pages/StudentProfile';
 import ViewDrives from './pages/ViewDrives';
 import MyApplications from './pages/MyApplications';
+import TpoOverview from './components/tpo_overview.jsx';
 
 function App() {
 
@@ -35,7 +34,6 @@ function App() {
         <Route path="/about" element={<AboutPage/>} />
         <Route path="/contact" element={<ContactPage/>} />
         <Route path="/login" element={<Login/>}/>
-        <Route path="/api-test" element={<ApiTest/>}/>
         
         {/* TPO Protected Routes */}
         <Route 
@@ -43,30 +41,6 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['TPO']}>
               <TpoDashboard/>
-            </ProtectedRoute>
-          }
-        />
-        <Route 
-          path="/tpo/companies" 
-          element={
-            <ProtectedRoute allowedRoles={['TPO']}>
-              <TpoCompanies/>
-            </ProtectedRoute>
-          }
-        />
-        <Route 
-          path="/tpo/drives" 
-          element={
-            <ProtectedRoute allowedRoles={['TPO']}>
-              <TpoDrives/>
-            </ProtectedRoute>
-          }
-        />
-        <Route 
-          path="/tpo/applications" 
-          element={
-            <ProtectedRoute allowedRoles={['TPO']}>
-              <TpoApplications/>
             </ProtectedRoute>
           }
         />
