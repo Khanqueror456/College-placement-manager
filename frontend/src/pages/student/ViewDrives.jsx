@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import studentService from '../services/studentService';
+import { useAuth } from '../../context/AuthContext';
+import studentService from '../../services/studentService';
 
 const ViewDrivesPage = () => {
   const { logout } = useAuth();
@@ -195,13 +195,22 @@ const ViewDrivesPage = () => {
                 </div>
 
                 {/* Apply Button */}
-                <button
-                  onClick={() => handleApplyClick(drive)}
-                  disabled={applyingTo === drive.id}
-                  className="w-full py-3 bg-sky-500 hover:bg-sky-600 rounded-lg font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {applyingTo === drive.id ? 'Applying...' : 'Apply Now'}
-                </button>
+                {drive.hasApplied || drive.has_applied ? (
+                  <button
+                    disabled
+                    className="w-full py-3 bg-slate-600 rounded-lg font-semibold cursor-not-allowed opacity-75"
+                  >
+                    Already Applied ✓
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleApplyClick(drive)}
+                    disabled={applyingTo === drive.id}
+                    className="w-full py-3 bg-sky-500 hover:bg-sky-600 rounded-lg font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {applyingTo === drive.id ? 'Applying...' : 'Apply Now'}
+                  </button>
+                )}
               </div>
             ))}
           </div>

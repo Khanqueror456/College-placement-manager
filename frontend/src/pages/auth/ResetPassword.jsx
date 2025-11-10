@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import authService from '../services/authService';
+import authService from '../../services/authService';
 
 // SVG Icon for Lock
 const LockIcon = () => (

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building, Plus, ArrowLeft, Edit, Trash2 } from 'lucide-react';
-import api from '../services/api';
+import api from '../../services/api';
 
 const TpoCompanies = () => {
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getPendingApprovals, approveStudent, rejectStudent, getStudentResume } from '../services/hodService';
-import { useAuth } from '../context/AuthContext';
+import { getPendingApprovals, approveStudent, rejectStudent, getStudentResume } from '../../services/hodService';
+import { useAuth } from '../../context/AuthContext';
 
 // --- SVG Icons ---
 const LogoutIcon = () => (

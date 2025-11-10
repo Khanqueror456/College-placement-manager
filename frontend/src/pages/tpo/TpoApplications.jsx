@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, ArrowLeft, Search, Filter, Download } from 'lucide-react';
-import api from '../services/api';
+import api from '../../services/api';
 
 const TpoApplications = () => {
   const navigate = useNavigate();
@@ -65,7 +65,6 @@ const TpoApplications = () => {
 
   const getStatusColor = (status) => {
     switch(status?.toUpperCase()) {
-      case 'PENDING':
       case 'APPLIED':
         return 'bg-blue-500 bg-opacity-20 text-blue-300';
       case 'SHORTLISTED':
@@ -74,6 +73,8 @@ const TpoApplications = () => {
         return 'bg-emerald-500 bg-opacity-20 text-emerald-300';
       case 'REJECTED':
         return 'bg-red-500 bg-opacity-20 text-red-300';
+      case 'ON_HOLD':
+        return 'bg-orange-500 bg-opacity-20 text-orange-300';
       default:
         return 'bg-slate-500 bg-opacity-20 text-slate-300';
     }
@@ -223,20 +224,20 @@ const TpoApplications = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(application.status)}`}>
-                          {application.status || 'PENDING'}
+                          {application.status || 'APPLIED'}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <select
-                          value={application.status || 'PENDING'}
+                          value={application.status || 'APPLIED'}
                           onChange={(e) => handleStatusUpdate(application.id, e.target.value)}
                           className="px-3 py-1 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-sky-500"
                         >
-                          <option value="PENDING">Pending</option>
                           <option value="APPLIED">Applied</option>
                           <option value="SHORTLISTED">Shortlisted</option>
                           <option value="SELECTED">Selected</option>
                           <option value="REJECTED">Rejected</option>
+                          <option value="ON_HOLD">On Hold</option>
                         </select>
                       </td>
                     </tr>

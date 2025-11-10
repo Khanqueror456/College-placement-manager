@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+﻿import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Chart as ChartJS,
@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { getHodDashboard } from '../services/hodService';
+import { getHodDashboard } from '../../services/hodService';
 
 // --- Register Chart.js components ---
 ChartJS.register(
@@ -258,7 +258,7 @@ const HodStatistics = () => {
     <div
       className="p-8 w-full min-h-screen"
       style={{ backgroundColor: '#0f172a', color: '#e2e8f0' }}
-      ref={reportRef} // 👈 capture this section
+      ref={reportRef} // ≡ƒæê capture this section
     >
       <div className="flex justify-between items-center mb-8">
         <div className="flex items-center gap-4">

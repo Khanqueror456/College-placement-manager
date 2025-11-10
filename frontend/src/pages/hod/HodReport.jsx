@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Chart as ChartJS,
@@ -17,7 +17,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import { format } from 'date-fns';
-import { getHodDashboard } from '../services/hodService';
+import { getHodDashboard } from '../../services/hodService';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 

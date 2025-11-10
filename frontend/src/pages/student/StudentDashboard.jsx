@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import studentService from '../services/studentService';
+import { useAuth } from '../../context/AuthContext';
+import studentService from '../../services/studentService';
 import { Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,

@@ -1,35 +1,40 @@
 import './App.css'
-import Login from './pages/login';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import StudentProfile from './pages/student_profile';
-import StudentDrives from './pages/StudentDrives';
-import StudentDriveStatus from './pages/StudentDriveStatus';
 import { Routes, Route } from 'react-router-dom';
-import HomePage from './pages/homepage';
+import { Toaster } from 'sonner';
+
+// Auth
+import Login from './pages/auth/Login';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+
+// Student
+import StudentDashboard from './pages/student/StudentDashboard';
+import StudentProfile from './pages/student/StudentProfile';
+import ViewDrives from './pages/student/ViewDrives';
+import MyApplications from './pages/student/MyApplications';
+
+// HOD
+import HodDashboard from './pages/hod/HodDashboard';
+import HodStats from './pages/hod/HodStats';
+import HodReport from './pages/hod/HodReport';
+
+// TPO
+import TpoDashboard from './pages/tpo/TpoDashboard';
+import TpoCompanies from './pages/tpo/TpoCompanies';
+import TpoDrives from './pages/tpo/TpoDrives';
+import TpoApplications from './pages/tpo/TpoApplications';
+import TpoStudents from './pages/tpo/TpoStudents';
+
+// General
+import HomePage from './pages/HomePage';
 import AboutPage from './pages/About';
 import ContactPage from './components/Contact';
 import NotFound from './pages/NotFound';
-import HodDashboard from './pages/hod_dashboard';
-import HodStatistics from './components/hod_stats';
-import HodPlacementReport from "./components/hod_reports"
-import StudentOverview from "./components/student_dashboard"
-import EditStudentProfile from "./pages/EditStudentProfile.jsx"
-import TpoOverview from './pages/tpo_overview.jsx';
-import TpoDriveStats from "./components/drive_stats.jsx"
-import TpoDashboard from './pages/TpoDashboard.jsx';
-import TpoCompanies from './pages/TpoCompanies.jsx';
-import TpoDrives from './pages/TpoDrives.jsx';
-import TpoApplications from './pages/TpoApplications.jsx';
-import TpoStudents from './pages/TpoStudents.jsx';
-import { AuthProvider } from './context/AuthContext';
 import ApiTest from './pages/ApiTest';
+
+// Context & Components
+import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
-import StudentDashboard from './pages/StudentDashboard';
-import StudentProfileNew from './pages/StudentProfile';
-import ViewDrives from './pages/ViewDrives';
-import MyApplications from './pages/MyApplications';
-import { Toaster } from 'sonner';
 
 function App() {
 
@@ -111,7 +116,7 @@ function App() {
           path="/hod-stats" 
           element={
             <ProtectedRoute allowedRoles={['HOD']}>
-              <HodStatistics/>
+              <HodStats/>
             </ProtectedRoute>
           }
         />
@@ -119,12 +124,12 @@ function App() {
           path="/hod-report" 
           element={
             <ProtectedRoute allowedRoles={['HOD']}>
-              <HodPlacementReport/>
+              <HodReport/>
             </ProtectedRoute>
           }
         />
-
-        {/* Student Protected Routes - NEW INTEGRATED PAGES */}
+        
+        {/* Student Protected Routes */}
         <Route 
           path="/student-dashboard" 
           element={
@@ -137,7 +142,7 @@ function App() {
           path="/student-profile" 
           element={
             <ProtectedRoute allowedRoles={['STUDENT']}>
-              <StudentProfileNew/>
+              <StudentProfile/>
             </ProtectedRoute>
           }
         />
@@ -157,12 +162,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
-        {/* Old Student Routes (keeping for backward compatibility) */}
-        <Route path="/student/dashboard" element={<StudentOverview/>}/>
-        <Route path="/student/profile" element={<StudentProfile/>}/>
-        <Route path="/student/drives" element={<StudentDrives/>}/>
-        <Route path="/student/status" element={<StudentDriveStatus/>}/>
         
         {/* This is the "catch-all" route for 404s */}
         <Route path="*" element={<NotFound />} />
